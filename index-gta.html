@@ -1,0 +1,2073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sangjani Toll Plaza | GTA VISUALS | NHA Motor Control</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Russo+One&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --primary: #00ff88;
+      --primary-dim: #00994d;
+      --danger: #ff2d2d;
+      --warn: #ffaa00;
+      --blue: #00aaff;
+      --gold: #ffd700;
+      --panel-bg: rgba(0,0,0,0.72);
+      --glow-green: 0 0 20px rgba(0,255,136,0.5);
+      --glow-red: 0 0 20px rgba(255,45,45,0.6);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width:100%; height:100%; overflow:hidden; font-family:'Rajdhani',sans-serif; background:#000; }
+
+    #scene-container { position:fixed; inset:0; z-index:0; }
+
+    /* HUD */
+    .hud { position:fixed; inset:0; z-index:10; pointer-events:none; }
+    .hud * { pointer-events:auto; }
+
+    /* TOP BAR */
+    .top-bar {
+      position:absolute; top:0; left:0; right:0;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 20px;
+      background:linear-gradient(180deg,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.4) 70%,transparent 100%);
+    }
+    .top-left { display:flex; align-items:center; gap:14px; }
+    .nha-logo {
+      font-family:'Russo One',sans-serif; font-size:1.2rem;
+      color:var(--primary);
+      text-shadow:0 0 20px rgba(0,255,136,0.8),0 0 40px rgba(0,255,136,0.3);
+      letter-spacing:0.12em;
+    }
+    .nha-logo .sub {
+      display:block; font-family:'Rajdhani',sans-serif; font-size:0.55rem;
+      color:rgba(200,230,255,0.6); letter-spacing:0.2em; margin-top:-2px;
+    }
+    .nha-badge-gta {
+      background:linear-gradient(135deg,#034d28,#068c44);
+      color:#a0ffcc; font-family:'Orbitron',monospace; font-size:0.55rem;
+      padding:3px 10px; border-radius:4px; font-weight:700; letter-spacing:0.15em;
+      border:1px solid rgba(0,255,136,0.5); box-shadow:0 0 15px rgba(0,255,136,0.3);
+      animation:badge-glow 3s ease-in-out infinite;
+    }
+    @keyframes badge-glow { 50% { box-shadow:0 0 25px rgba(0,255,136,0.6); } }
+
+    .top-right { display:flex; align-items:center; gap:16px; }
+    .clock-gta {
+      font-family:'Bebas Neue',sans-serif; font-size:1.6rem;
+      color:#fff; letter-spacing:0.08em; text-shadow:0 0 8px rgba(255,255,255,0.3);
+    }
+    .sys-online { display:flex; align-items:center; gap:6px; font-family:'Orbitron',monospace; font-size:0.6rem; color:var(--primary); }
+    .dot-g { width:8px; height:8px; border-radius:50%; background:var(--primary); box-shadow:0 0 10px var(--primary); animation:pulse-dot 2s ease infinite; }
+    @keyframes pulse-dot { 50% { opacity:0.4; } }
+
+    /* MONEY */
+    .money-display { position:absolute; top:60px; right:20px; text-align:right; }
+    .money-label { font-family:'Orbitron',monospace; font-size:0.5rem; color:rgba(255,255,255,0.4); letter-spacing:0.1em; }
+    .money-val { font-family:'Bebas Neue',sans-serif; font-size:2.2rem; color:var(--gold); text-shadow:0 0 15px rgba(255,215,0,0.5),2px 2px 4px rgba(0,0,0,0.8); line-height:1; }
+    .money-sub { font-family:'Orbitron',monospace; font-size:0.6rem; color:rgba(255,255,255,0.5); margin-top:2px; }
+
+    /* WANTED */
+    .wanted-wrap { position:absolute; top:60px; right:20px; display:none; }
+    .wanted-wrap.active { display:block; }
+    .wanted-label { font-family:'Bebas Neue',sans-serif; font-size:0.7rem; color:var(--danger); letter-spacing:0.2em; }
+    .wanted-stars { font-size:1.5rem; letter-spacing:4px; animation:wanted-flash 0.5s ease infinite; }
+    @keyframes wanted-flash { 50% { opacity:0.5; } }
+
+    /* LEFT PANEL */
+    .left-panel { position:absolute; left:16px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:8px; width:220px; }
+    .lane-card-gta {
+      background:var(--panel-bg); border-radius:8px; padding:10px 12px;
+      border-left:3px solid var(--primary); backdrop-filter:blur(10px); transition:all 0.3s;
+    }
+    .lane-card-gta.bl-active {
+      border-left-color:var(--danger); background:rgba(80,0,0,0.6);
+      animation:lane-danger 0.5s ease infinite;
+    }
+    @keyframes lane-danger { 50% { background:rgba(120,0,0,0.7); } }
+
+    .lc-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+    .lc-name { font-family:'Orbitron',monospace; font-size:0.75rem; color:var(--primary); font-weight:700; letter-spacing:0.1em; }
+    .lc-status-dot { width:10px; height:10px; border-radius:50%; background:var(--primary); box-shadow:0 0 8px var(--primary); animation:pulse-dot 2s ease infinite; }
+    .lc-status-dot.danger { background:var(--danger); box-shadow:0 0 12px var(--danger); }
+    .lc-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+    .lc-cell { text-align:center; }
+    .lc-cell .lab { font-size:0.5rem; color:rgba(255,255,255,0.35); letter-spacing:0.05em; }
+    .lc-cell .val { font-family:'Orbitron',monospace; font-size:0.8rem; color:#fff; font-weight:600; }
+    .lc-cell .val.green { color:var(--primary); }
+    .lc-cell .val.gold { color:var(--gold); }
+    .lc-cell .val.red { color:var(--danger); }
+    .lc-rfid {
+      margin-top:6px; font-family:'Orbitron',monospace; font-size:0.55rem;
+      color:rgba(255,255,255,0.3); text-align:center; padding:3px;
+      background:rgba(0,0,0,0.4); border-radius:4px;
+    }
+    .lc-rfid.reading { color:var(--primary); background:rgba(0,255,136,0.1); animation:rfid-pulse 1s ease infinite; }
+    .lc-rfid.blacklisted { color:var(--danger); background:rgba(255,0,0,0.15); animation:rfid-bl 0.4s ease infinite; }
+    @keyframes rfid-pulse { 50% { box-shadow:inset 0 0 15px rgba(0,255,136,0.2); } }
+    @keyframes rfid-bl { 50% { box-shadow:inset 0 0 15px rgba(255,0,0,0.3); } }
+
+    /* EASY MONEY PANEL */
+    .easy-money-panel {
+      position:absolute; right:16px; top:50%; transform:translateY(-50%);
+      width:180px; background:var(--panel-bg); border-radius:8px; padding:10px;
+      backdrop-filter:blur(10px); border:1px solid rgba(255,215,0,0.2);
+    }
+    .em-gta-title { font-family:'Orbitron',monospace; font-size:0.6rem; color:var(--gold); letter-spacing:0.1em; margin-bottom:6px; }
+    .em-gta-row { font-size:0.6rem; color:rgba(255,255,255,0.5); margin:4px 0; display:flex; align-items:center; gap:6px; }
+    .em-gta-row .icon { font-size:0.9rem; }
+    .em-gta-row .val { color:#fff; font-family:'Orbitron',monospace; font-size:0.65rem; }
+    .em-gta-row .val.green { color:var(--primary); }
+    .phone-mini {
+      width:50px; height:80px; margin:6px auto 0; background:#111; border:2px solid #333;
+      border-radius:8px; display:flex; align-items:center; justify-content:center;
+      flex-direction:column; box-shadow:0 4px 20px rgba(0,0,0,0.5);
+    }
+    .phone-mini .pm-app { font-family:'Orbitron',monospace; font-size:0.35rem; color:var(--primary); }
+    .phone-mini .pm-bal { font-family:'Bebas Neue',sans-serif; font-size:0.8rem; color:var(--primary); }
+    .phone-mini.updating { animation:phone-glow 0.8s ease infinite; }
+    @keyframes phone-glow { 50% { box-shadow:0 0 20px rgba(0,255,136,0.5); border-color:var(--primary); } }
+
+    /* BOTTOM BAR */
+    .bottom-bar {
+      position:absolute; bottom:0; left:0; right:0;
+      background:linear-gradient(0deg,rgba(0,0,0,0.9) 0%,rgba(0,0,0,0.5) 70%,transparent 100%);
+      padding:40px 20px 16px;
+      display:flex; align-items:flex-end; justify-content:space-between;
+    }
+    .bottom-left { display:flex; gap:16px; align-items:flex-end; }
+    .stat-box { text-align:center; padding:8px 14px; background:rgba(0,0,0,0.5); border-radius:6px; border:1px solid rgba(255,255,255,0.08); }
+    .stat-box .sb-label { font-size:0.55rem; color:rgba(255,255,255,0.35); font-family:'Orbitron',monospace; letter-spacing:0.08em; }
+    .stat-box .sb-val { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; color:#fff; line-height:1.1; }
+    .stat-box .sb-val.green { color:var(--primary); }
+    .stat-box .sb-val.red { color:var(--danger); }
+    .stat-box .sb-val.gold { color:var(--gold); }
+    .bottom-center { text-align:center; }
+    .run-btn-gta {
+      font-family:'Russo One',sans-serif; font-size:1rem; letter-spacing:0.15em;
+      padding:12px 40px; border:2px solid var(--primary); border-radius:6px;
+      background:rgba(0,255,136,0.1); color:var(--primary); cursor:pointer;
+      text-shadow:0 0 10px rgba(0,255,136,0.5);
+      box-shadow:0 0 30px rgba(0,255,136,0.2),inset 0 0 20px rgba(0,255,136,0.05);
+      transition:all 0.3s; position:relative; overflow:hidden;
+    }
+    .run-btn-gta::before {
+      content:''; position:absolute; top:0; left:-100%; width:100%; height:100%;
+      background:linear-gradient(90deg,transparent,rgba(0,255,136,0.2),transparent);
+      transition:left 0.5s;
+    }
+    .run-btn-gta:hover::before { left:100%; }
+    .run-btn-gta:hover { background:rgba(0,255,136,0.2); box-shadow:0 0 50px rgba(0,255,136,0.4); transform:scale(1.05); }
+    .run-btn-gta:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+    .run-hint-gta { font-size:0.55rem; color:rgba(255,255,255,0.3); margin-top:6px; font-family:'Orbitron',monospace; letter-spacing:0.05em; }
+    .progress-bar-gta { width:220px; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; margin-top:8px; overflow:hidden; }
+    .progress-fill-gta {
+      height:100%; width:0; border-radius:2px;
+      background:linear-gradient(90deg,var(--primary-dim),var(--primary),#00ffcc);
+      transition:width 0.4s; box-shadow:0 0 10px rgba(0,255,136,0.6);
+    }
+
+    /* RIGHT PANEL */
+    .right-panel { position:absolute; right:16px; bottom:80px; width:200px; display:flex; flex-direction:column; gap:8px; }
+    .minimap { width:200px; height:140px; border-radius:8px; overflow:hidden; border:2px solid rgba(255,255,255,0.15); background:#0a1a0a; position:relative; }
+    .minimap canvas { width:100%; height:100%; }
+    .minimap-label { position:absolute; bottom:4px; left:6px; font-family:'Orbitron',monospace; font-size:0.45rem; color:rgba(0,255,136,0.6); letter-spacing:0.1em; }
+    .log-panel-gta { background:var(--panel-bg); border-radius:8px; padding:8px 10px; backdrop-filter:blur(10px); max-height:160px; overflow-y:auto; }
+    .log-panel-gta::-webkit-scrollbar { width:3px; }
+    .log-panel-gta::-webkit-scrollbar-thumb { background:var(--primary-dim); border-radius:2px; }
+    .log-title-gta { font-family:'Orbitron',monospace; font-size:0.55rem; color:var(--primary); letter-spacing:0.1em; margin-bottom:4px; }
+    .log-entry { font-family:'Orbitron',monospace; font-size:0.48rem; color:rgba(255,255,255,0.5); padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .log-entry.alert { color:var(--danger); }
+    .log-entry.success { color:var(--primary); }
+    .log-entry.police { color:#aa88ff; }
+
+    /* GTA NOTIFICATION */
+    .gta-notif {
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:rgba(0,0,0,0.85); border:1px solid rgba(255,255,255,0.15);
+      border-radius:8px; padding:14px 28px; font-family:'Russo One',sans-serif; font-size:0.9rem;
+      color:#fff; text-align:center; text-shadow:0 0 10px rgba(255,255,255,0.3);
+      opacity:0; transition:opacity 0.3s; pointer-events:none; backdrop-filter:blur(12px);
+    }
+    .gta-notif.show { opacity:1; }
+    .gta-notif.alert { border-color:var(--danger); color:var(--danger); text-shadow:0 0 15px rgba(255,0,0,0.5); }
+    .gta-notif .notif-sub { font-family:'Rajdhani',sans-serif; font-size:0.65rem; color:rgba(255,255,255,0.4); margin-top:4px; }
+
+    /* CCTV FLASH */
+    #cctvFlash { position:fixed; inset:0; background:rgba(255,255,255,0.9); opacity:0; pointer-events:none; z-index:100; transition:opacity 0.1s; }
+    #cctvFlash.active { opacity:1; }
+
+    /* ALARM OVERLAY */
+    #alarmOverlay { position:fixed; inset:0; z-index:50; pointer-events:none; display:none; }
+    #alarmOverlay.active { display:block; animation:alarm-ov 0.35s ease infinite; }
+    @keyframes alarm-ov { 0%,100% { background:rgba(180,0,0,0); } 50% { background:rgba(180,0,0,0.15); } }
+    #sirenBar { display:none; position:fixed; top:0; left:0; right:0; height:4px; z-index:51; }
+    #sirenBar.active { display:block; background:linear-gradient(90deg,#ff0000,#0044ff,#ff0000,#0044ff); background-size:200% 100%; animation:siren-slide 0.3s linear infinite; }
+    @keyframes siren-slide { 0% { background-position:0% 0%; } 100% { background-position:200% 0%; } }
+
+    /* POLICE POPUP */
+    .police-popup-gta {
+      position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(120%);
+      z-index:60; background:rgba(0,0,0,0.9); border:2px solid #8855ff;
+      border-radius:10px; padding:16px 24px; min-width:300px;
+      box-shadow:0 0 50px rgba(100,0,255,0.4); backdrop-filter:blur(12px);
+      transition:transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .police-popup-gta.active { transform:translateX(-50%) translateY(0); }
+    .pp-gta-head { font-family:'Russo One',sans-serif; font-size:0.9rem; color:#aa88ff; letter-spacing:0.1em; margin-bottom:8px; text-shadow:0 0 15px rgba(100,0,255,0.5); }
+    .pp-gta-row { display:flex; justify-content:space-between; font-size:0.65rem; color:rgba(255,255,255,0.5); margin:4px 0; }
+    .pp-gta-val { color:#fff; font-family:'Orbitron',monospace; font-weight:600; }
+    .pp-gta-status { text-align:center; margin-top:8px; font-family:'Orbitron',monospace; font-size:0.6rem; color:var(--danger); animation:wanted-flash 0.5s ease infinite; }
+    .pp-gta-close { position:absolute; top:8px; right:12px; background:none; border:none; color:#6655cc; font-size:0.8rem; cursor:pointer; }
+
+    /* SERVER SYNC OVERLAY */
+    .server-sync-overlay {
+      position:fixed; inset:0; z-index:25; display:none;
+      align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.55); pointer-events:none;
+    }
+    .server-sync-overlay.active { display:flex; }
+    .sync-box {
+      background:rgba(0,10,20,0.92); border:2px solid var(--blue);
+      border-radius:12px; padding:24px 40px; min-width:350px;
+      text-align:center; box-shadow:0 0 40px rgba(0,170,255,0.25);
+    }
+    .sync-title { font-family:'Orbitron',monospace; font-size:0.75rem; color:var(--blue); letter-spacing:0.12em; margin-bottom:8px; }
+    .sync-lane { font-family:'Bebas Neue',sans-serif; font-size:2rem; color:#fff; text-shadow:0 0 12px rgba(0,170,255,0.4); }
+    .sync-progress-bar { width:100%; height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin:12px 0 8px; overflow:hidden; }
+    .sync-progress-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--blue),var(--primary)); border-radius:3px; transition:width 0.3s linear; }
+    .sync-detail { font-family:'Rajdhani',sans-serif; font-size:0.8rem; color:rgba(255,255,255,0.6); }
+    .sync-timer { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; color:var(--primary); margin-top:4px; }
+
+    /* ADMIN SERVER OVERLAY */
+    .admin-server-overlay {
+      position:fixed; inset:10%; z-index:200; background:rgba(0,0,0,0.9);
+      border:2px solid var(--primary); border-radius:12px; box-shadow:0 0 50px rgba(0,255,136,0.3);
+      display:flex; flex-direction:column; padding:20px; color:#fff; font-family:'Orbitron',monospace;
+      opacity:0; pointer-events:none; transform:scale(0.95); transition:all 0.5s;
+    }
+    .admin-server-overlay.active { opacity:1; pointer-events:auto; transform:scale(1); }
+    .admin-header { font-size:1.3rem; color:var(--primary); text-align:center; margin-bottom:16px; letter-spacing:0.15em; text-shadow:0 0 10px rgba(0,255,136,0.5); }
+    .admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; flex:1; min-height:0; }
+    .admin-panel { background:rgba(0,255,136,0.05); border:1px solid rgba(0,255,136,0.2); padding:12px; border-radius:8px; overflow-y:auto; }
+    .admin-panel::-webkit-scrollbar { width:4px; }
+    .admin-panel::-webkit-scrollbar-thumb { background:var(--primary-dim); border-radius:2px; }
+    .ap-title { font-size:0.8rem; color:#fff; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; }
+    .ap-row { font-size:0.65rem; color:rgba(255,255,255,0.7); margin-bottom:6px; }
+    .ap-row.highlight { color:var(--primary); }
+    .ap-row.danger { color:var(--danger); }
+    .ap-row.info { color:var(--blue); }
+    .admin-progress { width:100%; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; margin-top:4px; overflow:hidden; }
+    .admin-bar { height:100%; width:0%; background:var(--primary); transition:width 1.2s; }
+
+    /* CAMERA CONTROLS */
+    .cam-controls { position:absolute; bottom:80px; left:16px; display:flex; gap:6px; }
+    .cam-btn {
+      width:32px; height:32px; border-radius:6px; background:rgba(0,0,0,0.6);
+      border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.5);
+      font-size:0.7rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+    }
+    .cam-btn:hover { background:rgba(0,255,136,0.15); border-color:var(--primary); color:var(--primary); }
+    .cam-btn.active { background:rgba(0,255,136,0.2); border-color:var(--primary); color:var(--primary); }
+
+    /* TICKER */
+    .ticker-gta {
+      position:absolute; bottom:64px; left:0; right:0; height:20px;
+      background:rgba(0,0,0,0.6); overflow:hidden;
+      border-top:1px solid rgba(255,255,255,0.05); border-bottom:1px solid rgba(255,255,255,0.05);
+    }
+    .ticker-gta .ticker-inner { display:flex; align-items:center; height:100%; white-space:nowrap; animation:ticker-scroll 30s linear infinite; }
+    @keyframes ticker-scroll { 0% { transform:translateX(100vw); } 100% { transform:translateX(-100%); } }
+    .ticker-gta span { font-family:'Orbitron',monospace; font-size:0.48rem; letter-spacing:0.07em; padding:0 2rem; }
+    .ticker-gta .tg { color:var(--primary); }
+    .ticker-gta .tw { color:var(--warn); }
+    .ticker-gta .tr { color:var(--danger); }
+    .ticker-gta .tb { color:var(--blue); }
+
+    .weather-ind { position:absolute; top:12px; left:50%; transform:translateX(-50%); font-family:'Orbitron',monospace; font-size:0.5rem; color:rgba(255,255,255,0.25); letter-spacing:0.15em; }
+
+    /* LIGHT MODE */
+    body.light-mode { background:#e8ecf0; }
+    body.light-mode .top-bar { background:linear-gradient(180deg,rgba(255,255,255,0.92) 0%,rgba(255,255,255,0.5) 70%,transparent 100%); }
+    body.light-mode .nha-logo { color:#046a38; text-shadow:0 0 10px rgba(4,106,56,0.4); }
+    body.light-mode .nha-logo .sub { color:rgba(0,50,80,0.7); }
+    body.light-mode .clock-gta { color:#1a2a3a; text-shadow:none; }
+    body.light-mode .sys-online { color:#046a38; }
+    body.light-mode .money-label, body.light-mode .money-sub { color:rgba(0,0,0,0.5); }
+    body.light-mode .money-val { color:#b8860b; text-shadow:0 1px 2px rgba(0,0,0,0.2); }
+    body.light-mode .lane-card-gta { background:rgba(255,255,255,0.88); border-left-color:#046a38; }
+    body.light-mode .lane-card-gta.bl-active { border-left-color:var(--danger); background:rgba(255,200,200,0.9); }
+    body.light-mode .lc-name { color:#046a38; }
+    body.light-mode .lc-cell .lab { color:rgba(0,0,0,0.45); }
+    body.light-mode .lc-cell .val { color:#1a2a3a; }
+    body.light-mode .lc-rfid { color:rgba(0,0,0,0.4); background:rgba(0,0,0,0.06); }
+    body.light-mode .easy-money-panel { background:rgba(255,255,255,0.9); border-color:rgba(184,134,11,0.4); }
+    body.light-mode .em-gta-title { color:#b8860b; }
+    body.light-mode .em-gta-row { color:rgba(0,0,0,0.55); }
+    body.light-mode .em-gta-row .val { color:#1a2a3a; }
+    body.light-mode .phone-mini { background:#f5f5f5; border-color:#ccc; }
+    body.light-mode .phone-mini .pm-app { color:#046a38; }
+    body.light-mode .phone-mini .pm-bal { color:#046a38; }
+    body.light-mode .bottom-bar { background:linear-gradient(0deg,rgba(255,255,255,0.92) 0%,rgba(255,255,255,0.5) 70%,transparent 100%); }
+    body.light-mode .stat-box { background:rgba(255,255,255,0.7); border-color:rgba(0,0,0,0.1); }
+    body.light-mode .stat-box .sb-label { color:rgba(0,0,0,0.45); }
+    body.light-mode .stat-box .sb-val { color:#1a2a3a; }
+    body.light-mode .run-btn-gta { background:rgba(4,106,56,0.15); border-color:#046a38; color:#046a38; }
+    body.light-mode .run-btn-gta:hover { background:rgba(4,106,56,0.25); }
+    body.light-mode .run-hint-gta { color:rgba(0,0,0,0.4); }
+    body.light-mode .progress-bar-gta { background:rgba(0,0,0,0.12); }
+    body.light-mode .minimap { border-color:rgba(0,0,0,0.2); background:#e0e8e0; }
+    body.light-mode .minimap-label { color:rgba(4,106,56,0.8); }
+    body.light-mode .net-flow { background:rgba(255,255,255,0.88); border-color:rgba(0,170,255,0.3); }
+    body.light-mode .net-title { color:#0088cc; }
+    body.light-mode .log-panel-gta { background:rgba(255,255,255,0.9); }
+    body.light-mode .log-title-gta { color:#046a38; }
+    body.light-mode .log-entry { color:rgba(0,0,0,0.55); border-color:rgba(0,0,0,0.08); }
+    body.light-mode .ticker-gta { background:rgba(255,255,255,0.75); border-color:rgba(0,0,0,0.08); }
+    body.light-mode .ticker-gta span { color:rgba(0,0,0,0.6); }
+    body.light-mode .ticker-gta .tg { color:#046a38; }
+    body.light-mode .ticker-gta .tw { color:#b8860b; }
+    body.light-mode .ticker-gta .tr { color:var(--danger); }
+    body.light-mode .ticker-gta .tb { color:#0088cc; }
+    body.light-mode .weather-ind { color:rgba(0,0,0,0.4); }
+    body.light-mode .cam-btn { background:rgba(255,255,255,0.8); border-color:rgba(0,0,0,0.15); color:rgba(0,0,0,0.6); }
+    body.light-mode .cam-btn:hover, body.light-mode .cam-btn.active { background:rgba(4,106,56,0.2); border-color:#046a38; color:#046a38; }
+    body.light-mode .gta-notif { background:rgba(255,255,255,0.95); border-color:rgba(0,0,0,0.15); color:#1a2a3a; }
+    body.light-mode .gta-notif .notif-sub { color:rgba(0,0,0,0.5); }
+
+    .light-mode-btn {
+      font-family:'Orbitron',monospace; font-size:0.55rem; font-weight:700; letter-spacing:0.08em;
+      padding:4px 10px; border-radius:4px; cursor:pointer; border:1px solid rgba(255,255,255,0.3);
+      background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.9); transition:all 0.3s;
+    }
+    .light-mode-btn:hover { background:rgba(255,255,255,0.25); }
+    body.light-mode .light-mode-btn { background:rgba(4,106,56,0.2); border-color:#046a38; color:#046a38; }
+    body.light-mode .light-mode-btn:hover { background:rgba(4,106,56,0.35); }
+
+    @media (max-width:900px) {
+      .left-panel { width:160px; }
+      .right-panel { width:150px; }
+      .easy-money-panel { width:140px; }
+    }
+
+    /* TAG ENTRY TYPING */
+    .tag-entry-row { display:none; }
+    .tag-typing { font-family:'Orbitron',monospace; color:var(--primary); font-size:0.65rem; letter-spacing:0.08em; }
+    .tag-cursor { animation:blink-cursor 0.5s ease infinite; }
+    @keyframes blink-cursor { 50% { opacity:0; } }
+
+    /* NETWORK FLOW DIAGRAM */
+    .net-flow {
+      background:var(--panel-bg); border-radius:8px; padding:8px;
+      backdrop-filter:blur(10px); border:1px solid rgba(0,170,255,0.15); margin-bottom:8px;
+    }
+    .net-title { font-family:'Orbitron',monospace; font-size:0.5rem; color:var(--blue); letter-spacing:0.1em; margin-bottom:6px; text-align:center; }
+    .net-nodes { display:flex; align-items:center; justify-content:center; gap:3px; }
+    .net-node {
+      text-align:center; padding:4px 5px;
+      border:1px solid rgba(0,170,255,0.2); border-radius:4px; background:rgba(0,10,30,0.7);
+      min-width:36px; transition:all 0.3s;
+    }
+    .net-node .nn-icon { font-size:0.7rem; }
+    .net-node .nn-name { font-family:'Orbitron',monospace; font-size:0.33rem; color:rgba(255,255,255,0.4); margin-top:1px; }
+    .net-node .nn-count { font-family:'Orbitron',monospace; font-size:0.55rem; color:var(--primary); font-weight:700; }
+    .net-node.syncing { border-color:var(--primary); box-shadow:0 0 12px rgba(0,255,136,0.3); }
+    .net-node.active-sync { border-color:var(--blue); box-shadow:0 0 15px rgba(0,170,255,0.4); background:rgba(0,30,60,0.8); }
+    .net-arrow { color:rgba(0,170,255,0.3); font-size:0.7rem; }
+    .net-arrow.active { color:var(--primary); animation:arrow-pulse 0.5s ease infinite; }
+    @keyframes arrow-pulse { 50% { color:#fff; transform:translateX(2px); } }
+    .net-sync-time { font-family:'Orbitron',monospace; font-size:0.38rem; color:rgba(255,255,255,0.25); text-align:center; margin-top:4px; }
+
+    /* ENHANCED PHONE */
+    .phone-mini .pm-tag { font-family:'Orbitron',monospace; font-size:0.28rem; color:rgba(255,255,255,0.35); margin-top:2px; }
+    .phone-mini .pm-msg { font-family:'Orbitron',monospace; font-size:0.26rem; color:var(--warn); display:none; margin-top:2px; }
+    .phone-mini.updating .pm-msg { display:block; }
+  </style>
+</head>
+<body>
+
+<!-- THREE.JS SCENE -->
+<div id="scene-container"></div>
+
+<!-- ALARM OVERLAYS -->
+<div id="cctvFlash"></div>
+<div id="alarmOverlay"></div>
+<div id="sirenBar"></div>
+
+<!-- ADMIN SERVER OVERLAY -->
+<div class="admin-server-overlay" id="adminServer">
+  <div class="admin-header">🌐 NHA MAIN SERVER / ADMIN DASHBOARD</div>
+  <div class="admin-grid">
+    <div class="admin-panel">
+      <div class="ap-title">📡 INCOMING LANE DATA</div>
+      <div id="adminDataLogs"></div>
+    </div>
+    <div class="admin-panel">
+      <div class="ap-title">🖥 LIVE GRAPHICS RENDER</div>
+      <div id="adminGraphicsLogs"><div class="ap-row" style="opacity:0.5;">Awaiting visuals...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SERVER SYNC OVERLAY -->
+<div class="server-sync-overlay" id="serverSyncOverlay">
+  <div class="sync-box">
+    <div class="sync-title" id="syncTitle">📡 CARRYING DATA TO MAIN SERVER</div>
+    <div class="sync-lane" id="syncLane">LANE-01</div>
+    <div class="sync-progress-bar"><div class="sync-progress-fill" id="syncProgressFill"></div></div>
+    <div class="sync-detail" id="syncDetail">Initializing...</div>
+    <div class="sync-timer" id="syncTimer">5s</div>
+  </div>
+</div>
+
+<!-- GTA HUD -->
+<div class="hud">
+
+  <div class="top-bar">
+    <div class="top-left">
+      <div class="nha-logo">
+        SANGJANI TOLL PLAZA
+        <span class="sub">NATIONAL HIGHWAY AUTHORITY · MOTOR CONTROL</span>
+      </div>
+      <div class="nha-badge-gta">NHA</div>
+    </div>
+    <div class="top-right">
+      <button class="light-mode-btn" id="lightModeBtn" title="Toggle Light Mode">☀ LIGHT</button>
+      <div class="sys-online"><div class="dot-g"></div> SYSTEM ONLINE</div>
+      <div class="clock-gta" id="clockEl">00:00:00</div>
+    </div>
+  </div>
+
+  <div class="weather-ind" id="weatherInd">🌧 RAIN · 22°C · N-5 MOTORWAY · VISIBILITY: GOOD</div>
+
+  <div class="money-display" id="moneyDisplay">
+    <div class="money-label">REVENUE</div>
+    <div class="money-val" id="moneyVal">₹0</div>
+    <div class="money-sub"><span id="bigTotal">0</span>/30 PROCESSED</div>
+  </div>
+
+  <div class="wanted-wrap" id="wantedWrap">
+    <div class="wanted-label">WANTED</div>
+    <div class="wanted-stars">⭐⭐⭐</div>
+  </div>
+
+  <!-- LEFT PANEL: 3 LANES -->
+  <div class="left-panel">
+    <div class="lane-card-gta" id="lc-0">
+      <div class="lc-header"><div class="lc-name">LANE 01</div><div class="lc-status-dot" id="lc-dot-0"></div></div>
+      <div class="lc-grid">
+        <div class="lc-cell"><div class="lab">PASSED</div><div class="val green" id="l1-passed">0</div></div>
+        <div class="lc-cell"><div class="lab">TOLL</div><div class="val gold" id="l1-deducted">₹0</div></div>
+        <div class="lc-cell"><div class="lab">BALANCE</div><div class="val" id="l1-bal">₹450</div></div>
+        <div class="lc-cell"><div class="lab">STATUS</div><div class="val green" id="l1-status">READY</div></div>
+      </div>
+      <div class="lc-rfid" id="rfid-hud-0">RFID: STANDBY</div>
+    </div>
+    <div class="lane-card-gta" id="lc-1">
+      <div class="lc-header"><div class="lc-name">LANE 02</div><div class="lc-status-dot" id="lc-dot-1"></div></div>
+      <div class="lc-grid">
+        <div class="lc-cell"><div class="lab">PASSED</div><div class="val green" id="l2-passed">0</div></div>
+        <div class="lc-cell"><div class="lab">TOLL</div><div class="val gold" id="l2-deducted">₹0</div></div>
+        <div class="lc-cell"><div class="lab">BALANCE</div><div class="val" id="l2-bal">₹450</div></div>
+        <div class="lc-cell"><div class="lab">STATUS</div><div class="val green" id="l2-status">READY</div></div>
+      </div>
+      <div class="lc-rfid" id="rfid-hud-1">RFID: STANDBY</div>
+    </div>
+    <div class="lane-card-gta" id="lc-2">
+      <div class="lc-header"><div class="lc-name">LANE 03</div><div class="lc-status-dot" id="lc-dot-2"></div></div>
+      <div class="lc-grid">
+        <div class="lc-cell"><div class="lab">PASSED</div><div class="val green" id="l3-passed">0</div></div>
+        <div class="lc-cell"><div class="lab">TOLL</div><div class="val gold" id="l3-deducted">₹0</div></div>
+        <div class="lc-cell"><div class="lab">BALANCE</div><div class="val" id="l3-bal">₹450</div></div>
+        <div class="lc-cell"><div class="lab">STATUS</div><div class="val green" id="l3-status">READY</div></div>
+      </div>
+      <div class="lc-rfid" id="rfid-hud-2">RFID: STANDBY</div>
+    </div>
+  </div>
+
+  <!-- EASY MONEY / PAISA PANEL -->
+  <div class="easy-money-panel">
+    <div class="em-gta-title">💰 EASY MONEY / PAISA</div>
+    <div class="em-gta-row"><span class="icon">🧑</span><span class="val" id="em-cust">Waiting...</span></div>
+    <div class="em-gta-row"><span class="icon">🏪</span><span class="val" id="em-shop">Standby</span></div>
+    <div class="em-gta-row tag-entry-row" id="tagEntryRow" style="display:none">
+      <span class="icon">🏷</span><span class="val tag-typing" id="em-tagEntry">TAG: _</span>
+    </div>
+    <div class="em-gta-row"><span class="icon">📶</span><span class="val green" id="em-status">—</span></div>
+    <div class="phone-mini" id="phoneMini">
+      <div class="pm-app">M-TAG APP</div>
+      <div class="pm-bal" id="phoneBal">₹450</div>
+      <div class="pm-tag">FASTag Balance</div>
+      <div class="pm-msg" id="pm-msg" style="display:none">UPDATING...</div>
+    </div>
+  </div>
+
+  <!-- TICKER -->
+  <div class="ticker-gta">
+    <div class="ticker-inner">
+      <span class="tg">● SYSTEM ONLINE</span>
+      <span class="tw">● SANGJANI TOLL PLAZA · NHA</span>
+      <span class="tr">● RFID SCANNER ACTIVE · ALL LANES</span>
+      <span class="tb">● CCTV RECORDING VIDEO 24/7</span>
+      <span class="tg">● FASTag / M-Tag SYSTEM</span>
+      <span class="tw">● POLICE UNIT ON STANDBY</span>
+      <span class="tb">● EASYPAISA EASY MONEY COUNTER OPEN</span>
+      <span class="tg">● BLACKLIST DATABASE LOADED</span>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <div class="bottom-left">
+      <div class="stat-box"><div class="sb-label">VEHICLES PASSED</div><div class="sb-val green" id="totalPassed">0</div></div>
+      <div class="stat-box"><div class="sb-label">BLACKLISTED</div><div class="sb-val red" id="totalBl">0</div></div>
+      <div class="stat-box"><div class="sb-label">REVENUE</div><div class="sb-val gold" id="totalRev">₹0</div></div>
+    </div>
+    <div class="bottom-center">
+      <button class="run-btn-gta" id="runBtn">▶ INITIALIZE SIMULATION</button>
+      <div class="run-hint-gta">SEQUENTIAL · STEP-BY-STEP · FULL DEMO</div>
+      <div class="progress-bar-gta"><div class="progress-fill-gta" id="progFill"></div></div>
+    </div>
+    <div style="width:200px;"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="minimap">
+      <canvas id="minimapCanvas" width="200" height="140"></canvas>
+      <div class="minimap-label">N-5 MOTORWAY · SANGJANI TOLL PLAZA · NHA</div>
+    </div>
+    <!-- NETWORK FLOW DIAGRAM -->
+    <div class="net-flow">
+      <div class="net-title">📡 DATA FLOW · WEB SYNC</div>
+      <div class="net-nodes">
+        <div class="net-node" id="nn-0"><div class="nn-icon">🖥</div><div class="nn-name">L-01</div><div class="nn-count">0</div></div>
+        <div class="net-arrow">›</div>
+        <div class="net-node" id="nn-1"><div class="nn-icon">🖥</div><div class="nn-name">L-02</div><div class="nn-count">0</div></div>
+        <div class="net-arrow">›</div>
+        <div class="net-node" id="nn-2"><div class="nn-icon">🖥</div><div class="nn-name">L-03</div><div class="nn-count">0</div></div>
+        <div class="net-arrow">›</div>
+        <div class="net-node" id="nn-main"><div class="nn-icon">🗄</div><div class="nn-name">MAIN</div><div class="nn-count">0</div></div>
+      </div>
+      <div class="net-sync-time" id="netSyncTime">SYNC: STANDBY</div>
+    </div>
+    <div class="log-panel-gta" id="logPanel">
+      <div class="log-title-gta">📋 SYSTEM LOG</div>
+    </div>
+  </div>
+
+  <!-- CAMERA CONTROLS -->
+  <div class="cam-controls">
+    <button class="cam-btn active" id="camBtn1" title="Cinematic">🎥</button>
+    <button class="cam-btn" id="camBtn2" title="Top Down">⬆</button>
+    <button class="cam-btn" id="camBtn3" title="Side View">↔</button>
+  </div>
+
+  <!-- GTA NOTIFICATION -->
+  <div class="gta-notif" id="gtaNotif">
+    <div id="gtaNotifText"></div>
+    <div class="notif-sub" id="gtaNotifSub"></div>
+  </div>
+
+  <!-- POLICE POPUP -->
+  <div class="police-popup-gta" id="policePopup">
+    <button class="pp-gta-close" onclick="document.getElementById('policePopup').classList.remove('active')">✕</button>
+    <div class="pp-gta-head">🚔 POLICE UNIT DISPATCHED</div>
+    <div class="pp-gta-row"><span>TAG:</span><span class="pp-gta-val" id="pp-tag">—</span></div>
+    <div class="pp-gta-row"><span>LANE:</span><span class="pp-gta-val" id="pp-lane">—</span></div>
+    <div class="pp-gta-row"><span>VEHICLE:</span><span class="pp-gta-val" id="pp-veh">—</span></div>
+    <div class="pp-gta-row"><span>TIME:</span><span class="pp-gta-val" id="pp-time">—</span></div>
+    <div class="pp-gta-status">⚠ BARRIER LOCKED · UNIT EN ROUTE</div>
+  </div>
+
+</div><!-- end .hud -->
+
+<script>
+(function() {
+
+// ═══════════════════════════════════════════════
+//  THREE.JS SCENE SETUP
+// ═══════════════════════════════════════════════
+const container = document.getElementById('scene-container');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.outputEncoding = THREE.sRGBEncoding;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d1820);
+scene.fog = new THREE.Fog(0x0d1820, 80, 280);
+scene.userData.lightMode = false;
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+camera.position.set(0, 28, 50);
+camera.lookAt(0, 2, 0);
+
+// ── LIGHTS (Pakistan motorway – dusk/evening feel) ──
+const ambient = new THREE.AmbientLight(0x445566, 1.2);
+scene.add(ambient);
+const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x1a2a1a, 0.4);
+scene.add(hemiLight);
+
+const sunLight = new THREE.DirectionalLight(0xffeedd, 1.15);
+sunLight.position.set(-20, 45, 25);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.bias = -0.0001;
+sunLight.shadow.normalBias = 0.02;
+sunLight.shadow.camera.near = 0.5;
+sunLight.shadow.camera.far = 200;
+sunLight.shadow.camera.left = -60;
+sunLight.shadow.camera.right = 60;
+sunLight.shadow.camera.top = 60;
+sunLight.shadow.camera.bottom = -60;
+scene.add(sunLight);
+
+// Warm overhead glow at toll area (highway lamps)
+const tollGlow = new THREE.PointLight(0xffdd88, 1.4, 55);
+tollGlow.position.set(0, 16, 0);
+scene.add(tollGlow);
+
+// Road edge reflectors (modern motorway)
+const edgeReflectMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.12 });
+[-15.5, 15.5].forEach(x => {
+  const s = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 300), edgeReflectMat);
+  s.rotation.x = -Math.PI / 2; s.position.set(x, 0.03, 0); scene.add(s);
+});
+// Concrete shoulder strips (motorway edge)
+[-15.8, 15.8].forEach(x => {
+  const shoulderGeo = new THREE.PlaneGeometry(0.5, 300);
+  const shoulderMat = new THREE.MeshStandardMaterial({ color: 0x4a5258, roughness: 0.9, metalness: 0.02 });
+  const shoulder = new THREE.Mesh(shoulderGeo, shoulderMat);
+  shoulder.rotation.x = -Math.PI / 2;
+  shoulder.position.set(x, 0.015, 0);
+  scene.add(shoulder);
+});
+
+// Lane lights (brighter yellow-orange highway lamps)
+const laneX = [-9, 0, 9];
+const laneLights = [];
+laneX.forEach((lx, i) => {
+  const lampLight = new THREE.PointLight(0xffcc66, 2.0, 35);
+  lampLight.position.set(lx, 10, -2);
+  scene.add(lampLight);
+  laneLights.push(lampLight);
+});
+
+// ── GROUND (realistic grass – varied green) ──
+const groundGeo = new THREE.PlaneGeometry(300, 300);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x1a3d1a, roughness: 0.92, metalness: 0.01 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ── ROAD (modern asphalt – darker, realistic) ──
+const roadGeo = new THREE.PlaneGeometry(32, 300);
+const roadMat = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.92, metalness: 0.03 });
+const road = new THREE.Mesh(roadGeo, roadMat);
+road.rotation.x = -Math.PI / 2;
+road.position.y = 0.01;
+road.receiveShadow = true;
+scene.add(road);
+
+// Road markings – white edge lines (Pakistan motorway style)
+function addRoadLine(x, color, width) {
+  width = width || 0.25;
+  const lineGeo = new THREE.PlaneGeometry(width, 300);
+  const lineMat = new THREE.MeshBasicMaterial({ color });
+  const line = new THREE.Mesh(lineGeo, lineMat);
+  line.rotation.x = -Math.PI / 2;
+  line.position.set(x, 0.02, 0);
+  scene.add(line);
+}
+addRoadLine(-15, 0xffffff, 0.35);
+addRoadLine(15, 0xffffff, 0.35);
+// Yellow center lines (Pakistan motorway)
+addRoadLine(-4.5, 0xf4d03f, 0.2);
+addRoadLine(4.5, 0xf4d03f, 0.2);
+
+// Dashed yellow center lines (motorway style)
+for (let z = -140; z < 140; z += 10) {
+  const dashGeo = new THREE.PlaneGeometry(0.2, 5);
+  const dashMat = new THREE.MeshBasicMaterial({ color: 0xf4d03f });
+  [-4.5, 4.5].forEach(x => {
+    const dash = new THREE.Mesh(dashGeo, dashMat);
+    dash.rotation.x = -Math.PI / 2;
+    dash.position.set(x, 0.021, z);
+    scene.add(dash);
+  });
+}
+// Cat's eyes / reflectors (modern motorway – fewer for performance)
+for (let z = -120; z < 120; z += 12) {
+  [-4.5, 4.5].forEach(x => {
+    const catGeo = new THREE.SphereGeometry(0.1, 6, 6);
+    const catMat = new THREE.MeshBasicMaterial({ color: 0xffffaa });
+    const cat = new THREE.Mesh(catGeo, catMat);
+    cat.position.set(x, 0.028, z);
+    scene.add(cat);
+  });
+}
+
+// ── TOLL GANTRY (Pakistan motorway – white structure + NHA green, PBR) ──
+const gantryMat = new THREE.MeshStandardMaterial({ color: 0xe8eaed, roughness: 0.4, metalness: 0.15 });
+const ganGeo = new THREE.BoxGeometry(32, 0.7, 1.4);
+const gantry = new THREE.Mesh(ganGeo, gantryMat);
+gantry.position.set(0, 7, 0);
+gantry.castShadow = true;
+scene.add(gantry);
+
+// Gantry supports (white pillars)
+[-15, -4.5, 4.5, 15].forEach(x => {
+  const postGeo = new THREE.BoxGeometry(0.7, 7, 0.7);
+  const post = new THREE.Mesh(postGeo, gantryMat);
+  post.position.set(x, 3.5, 0);
+  post.castShadow = true;
+  scene.add(post);
+});
+
+// NHA green stripe on gantry (Pakistan motorway branding)
+const signGeo = new THREE.BoxGeometry(31, 0.25, 0.9);
+const signMat = new THREE.MeshBasicMaterial({ color: 0x046a38 });
+const sign = new THREE.Mesh(signGeo, signMat);
+sign.position.set(0, 7.55, 0);
+scene.add(sign);
+
+// FASTag sign strip (glow)
+const fastagStrip = new THREE.Mesh(
+  new THREE.BoxGeometry(28, 0.15, 0.7),
+  new THREE.MeshBasicMaterial({ color: 0x00ff8855, transparent: true, opacity: 0.7 })
+);
+fastagStrip.position.set(0, 7.35, 0);
+scene.add(fastagStrip);
+
+// ── TOLL BOOTHS (Pakistan motorway – white canopy + NHA green, PBR) ──
+const boothMat = new THREE.MeshStandardMaterial({ color: 0xf0f2f5, roughness: 0.5, metalness: 0.05 });
+const roofMat = new THREE.MeshStandardMaterial({ color: 0xe8eaed, roughness: 0.45, metalness: 0.08 });
+
+laneX.forEach(lx => {
+  // Booth body (modern white cabin)
+  const boothGeo = new THREE.BoxGeometry(2.8, 3.8, 2.8);
+  const booth = new THREE.Mesh(boothGeo, boothMat);
+  booth.position.set(lx, 1.9, -1);
+  booth.castShadow = true;
+  scene.add(booth);
+  // Roof (extended canopy – real toll booth)
+  const roofGeo = new THREE.BoxGeometry(3.4, 0.4, 3.2);
+  const roofM = new THREE.Mesh(roofGeo, roofMat);
+  roofM.position.set(lx, 4, -1);
+  roofM.castShadow = true;
+  scene.add(roofM);
+  // NHA green stripe on roof
+  const stripeGeo = new THREE.BoxGeometry(3.5, 0.15, 0.6);
+  const stripeMat = new THREE.MeshBasicMaterial({ color: 0x046a38 });
+  const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+  stripe.position.set(lx, 4.25, -1);
+  scene.add(stripe);
+  // RFID antenna (small box on roof – modern toll)
+  const antGeo = new THREE.BoxGeometry(0.4, 0.25, 0.4);
+  const antMat = new THREE.MeshStandardMaterial({ color: 0x2a3540, roughness: 0.4, metalness: 0.5 });
+  const ant = new THREE.Mesh(antGeo, antMat);
+  ant.position.set(lx, 4.5, -1.5);
+  scene.add(ant);
+  // Window / LCD display (realistic)
+  const winFrameGeo = new THREE.BoxGeometry(1.8, 1.2, 0.15);
+  const winFrameMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.3, metalness: 0.6 });
+  const winFrame = new THREE.Mesh(winFrameGeo, winFrameMat);
+  winFrame.position.set(lx, 2.4, -2.3);
+  scene.add(winFrame);
+  const winGeo = new THREE.BoxGeometry(1.5, 1, 0.08);
+  const winMat = new THREE.MeshBasicMaterial({ color: 0x0a1a2a });
+  const win = new THREE.Mesh(winGeo, winMat);
+  win.position.set(lx, 2.4, -2.38);
+  scene.add(win);
+});
+
+// ── BARRIERS (Pakistan motorway – orange/white stripes) ──
+const barriers = [];
+laneX.forEach((lx, i) => {
+  const g = new THREE.Group();
+  // Base (grey pole)
+  const baseGeo = new THREE.BoxGeometry(0.55, 0.9, 0.55);
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x3a4555, roughness: 0.6, metalness: 0.3 });
+  const base = new THREE.Mesh(baseGeo, baseMat);
+  base.position.set(0, 0.45, 0);
+  g.add(base);
+  // Arm pivot group
+  const pivot = new THREE.Group();
+  pivot.position.set(0, 0.9, 0);
+  // Arm – orange/white stripes (real motorway style)
+  const armGeo = new THREE.BoxGeometry(5, 0.22, 0.22);
+  const armMat = new THREE.MeshStandardMaterial({ color: 0xff6b00, roughness: 0.5, metalness: 0.2 });
+  const arm = new THREE.Mesh(armGeo, armMat);
+  arm.position.set(2.5, 0, 0);
+  pivot.add(arm);
+  for (let s = 0; s < 6; s++) {
+    const stripeGeo = new THREE.BoxGeometry(0.5, 0.24, 0.24);
+    const stripeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+    stripe.position.set(0.6 + s * 0.9, 0, 0);
+    pivot.add(stripe);
+  }
+  g.add(pivot);
+  g.position.set(lx - 2, 0, 3);
+  scene.add(g);
+  barriers.push({ group: g, pivot, isOpen: false, currentAngle: 0 });
+});
+
+// ── LAMP POSTS (modern highway – angled arm, LED style) ──
+[-17, 17].forEach(x => {
+  [-30, 30].forEach(z => {
+    const poleGeo = new THREE.CylinderGeometry(0.1, 0.12, 12, 8);
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x2a3540, roughness: 0.5, metalness: 0.5 });
+    const pole = new THREE.Mesh(poleGeo, poleMat);
+    pole.position.set(x, 6, z);
+    pole.castShadow = true;
+    scene.add(pole);
+    const armGeo = new THREE.BoxGeometry(2, 0.08, 0.08);
+    const armMat = new THREE.MeshStandardMaterial({ color: 0x2a3540, roughness: 0.5, metalness: 0.5 });
+    const arm = new THREE.Mesh(armGeo, armMat);
+    arm.position.set(x, 11.5, z);
+    arm.rotation.z = -0.3;
+    scene.add(arm);
+    const lampGeo = new THREE.BoxGeometry(0.6, 0.25, 0.4);
+    const lampMat = new THREE.MeshBasicMaterial({ color: 0xffeedd });
+    const lamp = new THREE.Mesh(lampGeo, lampMat);
+    lamp.position.set(x + 0.8, 11.6, z);
+    scene.add(lamp);
+  });
+});
+
+// ══════════════════════════════════════════════
+//  SERVER TOWER (Web Sync target) — right side
+// ══════════════════════════════════════════════
+const serverTower = new THREE.Group();
+
+// Base platform
+const sBaseMat = new THREE.MeshStandardMaterial({ color: 0x0a1e2a, roughness: 0.5, metalness: 0.4 });
+const sBase = new THREE.Mesh(new THREE.BoxGeometry(5, 0.4, 5), sBaseMat);
+sBase.position.y = 0.2;
+serverTower.add(sBase);
+
+// Main tower body
+const sTowerMat = new THREE.MeshStandardMaterial({ color: 0x0d2535, roughness: 0.4, metalness: 0.6 });
+const sTower = new THREE.Mesh(new THREE.BoxGeometry(3.5, 12, 3.5), sTowerMat);
+sTower.position.y = 6.4;
+serverTower.add(sTower);
+
+// Tower accent stripes
+[2, 5, 8].forEach(y => {
+  const stripe = new THREE.Mesh(
+    new THREE.BoxGeometry(3.6, 0.2, 3.6),
+    new THREE.MeshBasicMaterial({ color: 0x00aaff44, transparent: true, opacity: 0.6 })
+  );
+  stripe.position.y = y;
+  serverTower.add(stripe);
+});
+
+// Server rack panels (front face)
+for (let r = 0; r < 5; r++) {
+  const rack = new THREE.Mesh(
+    new THREE.BoxGeometry(2.8, 1.4, 0.1),
+    new THREE.MeshBasicMaterial({ color: 0x112233 })
+  );
+  rack.position.set(0, 1.5 + r * 1.7, 1.76);
+  serverTower.add(rack);
+  // Rack LED row
+  for (let led = 0; led < 6; led++) {
+    const ledMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.12, 0.08),
+      new THREE.MeshBasicMaterial({ color: r % 2 === 0 ? 0x00ff88 : 0x00aaff })
+    );
+    ledMesh.position.set(-1.1 + led * 0.44, 1.5 + r * 1.7 + 0.4, 1.82);
+    serverTower.add(ledMesh);
+  }
+}
+
+// Antenna
+const antenna = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.05, 0.08, 3, 6),
+  new THREE.MeshLambertMaterial({ color: 0x1a3a4a })
+);
+antenna.position.y = 13.5;
+serverTower.add(antenna);
+
+// Antenna dish
+const dishGeo = new THREE.ConeGeometry(0.8, 0.4, 8, 1, true);
+const dishMat = new THREE.MeshBasicMaterial({ color: 0x00aaff33, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
+const dish = new THREE.Mesh(dishGeo, dishMat);
+dish.position.y = 15.2;
+dish.rotation.x = Math.PI;
+serverTower.add(dish);
+
+// Antenna tip glow
+const antennaTip = new THREE.Mesh(
+  new THREE.SphereGeometry(0.18, 6, 6),
+  new THREE.MeshBasicMaterial({ color: 0x00aaff })
+);
+antennaTip.position.y = 15.1;
+serverTower.add(antennaTip);
+serverTower.userData.antennaTip = antennaTip;
+
+// Signal rings (animated)
+const signalRings = [];
+for (let sr = 0; sr < 3; sr++) {
+  const ringGeo = new THREE.RingGeometry(1 + sr * 0.8, 1.2 + sr * 0.8, 16);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.4 - sr * 0.1, side: THREE.DoubleSide });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.y = 15.1;
+  ring.rotation.x = -Math.PI / 2;
+  ring.userData.offset = sr * 0.33;
+  serverTower.add(ring);
+  signalRings.push(ring);
+}
+
+serverTower.position.set(28, 0, -15);
+scene.add(serverTower);
+
+// ══════════════════════════════════════════════
+//  EASY MONEY KIOSK — left side of road
+// ══════════════════════════════════════════════
+const kioskGroup = new THREE.Group();
+
+// Kiosk base (concrete)
+const kBase = new THREE.Mesh(
+  new THREE.BoxGeometry(3, 0.35, 2.5),
+  new THREE.MeshStandardMaterial({ color: 0x4a5560, roughness: 0.8, metalness: 0.1 })
+);
+kBase.position.y = 0.18;
+kioskGroup.add(kBase);
+
+// Kiosk body (white – Easy Money / Easypaisa style)
+const kBodyMat = new THREE.MeshStandardMaterial({ color: 0xf0f2f5, roughness: 0.4, metalness: 0.2 });
+const kBody = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3.5, 2), kBodyMat);
+kBody.position.y = 2.05;
+kioskGroup.add(kBody);
+
+// Kiosk roof (NHA green stripe)
+const kRoof = new THREE.Mesh(
+  new THREE.BoxGeometry(2.8, 0.35, 2.3),
+  new THREE.MeshStandardMaterial({ color: 0xe8eaed, roughness: 0.45, metalness: 0.08 })
+);
+kRoof.position.y = 3.98;
+kioskGroup.add(kRoof);
+const kRoofStripe = new THREE.Mesh(
+  new THREE.BoxGeometry(2.9, 0.12, 0.4),
+  new THREE.MeshBasicMaterial({ color: 0x046a38 })
+);
+kRoofStripe.position.set(0, 4.2, 1.15);
+kioskGroup.add(kRoofStripe);
+
+// Kiosk screen (glowing)
+const kScreenMat = new THREE.MeshBasicMaterial({ color: 0x00ff8855, transparent: true, opacity: 0.9 });
+const kScreen = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 0.1), kScreenMat);
+kScreen.position.set(0, 2.4, 1.05);
+kioskGroup.add(kScreen);
+kioskGroup.userData.screen = kScreen;
+kioskGroup.userData.screenMat = kScreenMat;
+
+// Easy Money sign
+const kSign = new THREE.Mesh(
+  new THREE.BoxGeometry(2.2, 0.5, 0.1),
+  new THREE.MeshBasicMaterial({ color: 0xffd70088, transparent: true, opacity: 0.9 })
+);
+kSign.position.set(0, 3.5, 1.05);
+kioskGroup.add(kSign);
+
+// Card slot
+const kSlot = new THREE.Mesh(
+  new THREE.BoxGeometry(0.8, 0.1, 0.15),
+  new THREE.MeshBasicMaterial({ color: 0x003322 })
+);
+kSlot.position.set(0, 1.5, 1.05);
+kioskGroup.add(kSlot);
+
+kioskGroup.position.set(-26, 0, -5);
+scene.add(kioskGroup);
+
+// ── CUSTOMER FIGURE ──
+const customerGroup = new THREE.Group();
+// Body
+const custBodyMat = new THREE.MeshLambertMaterial({ color: 0x3355aa });
+const custBody = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.4), custBodyMat);
+custBody.position.y = 1.4;
+customerGroup.add(custBody);
+// Head
+const custHead = new THREE.Mesh(
+  new THREE.SphereGeometry(0.35, 8, 8),
+  new THREE.MeshLambertMaterial({ color: 0xd4a574 })
+);
+custHead.position.y = 2.4;
+customerGroup.add(custHead);
+// Legs
+[[-0.2, 0], [0.2, 0]].forEach((pos, i) => {
+  const leg = new THREE.Mesh(
+    new THREE.BoxGeometry(0.28, 0.9, 0.3),
+    new THREE.MeshLambertMaterial({ color: 0x222255 })
+  );
+  leg.position.set(pos[0], 0.5, 0);
+  customerGroup.add(leg);
+});
+// Phone (held up during top-up)
+const phoneObj = new THREE.Mesh(
+  new THREE.BoxGeometry(0.25, 0.45, 0.05),
+  new THREE.MeshBasicMaterial({ color: 0x111111 })
+);
+phoneObj.position.set(0.5, 1.8, 0.2);
+customerGroup.add(phoneObj);
+const phoneScreen = new THREE.Mesh(
+  new THREE.BoxGeometry(0.2, 0.38, 0.06),
+  new THREE.MeshBasicMaterial({ color: 0x00ff8800, transparent: true, opacity: 0 })
+);
+phoneScreen.position.set(0.5, 1.8, 0.24);
+customerGroup.add(phoneScreen);
+customerGroup.userData.phoneScreen = phoneScreen;
+customerGroup.userData.phoneScreenMat = phoneScreen.material;
+
+customerGroup.position.set(-30, 0, 5); // start far left, walks toward kiosk
+customerGroup.visible = false;
+scene.add(customerGroup);
+
+// ══════════════════════════════════════════
+//  DATA PACKETS (for web sync animation)
+// ══════════════════════════════════════════
+const dataPackets = []; // active flying packets: {mesh, from, to, progress, speed}
+
+function spawnDataPacket(fromLaneIdx) {
+  const from = new THREE.Vector3(laneX[fromLaneIdx], 3, -1);
+  const to   = new THREE.Vector3(28, 8, -15);
+  const packetGeo = new THREE.SphereGeometry(0.22, 6, 6);
+  const packetMat = new THREE.MeshBasicMaterial({ color: 0x00aaff });
+  const packet = new THREE.Mesh(packetGeo, packetMat);
+  packet.position.copy(from);
+  scene.add(packet);
+
+  // Trailing glow ring
+  const trailGeo = new THREE.SphereGeometry(0.35, 6, 6);
+  const trailMat = new THREE.MeshBasicMaterial({ color: 0x00aaff22, transparent: true, opacity: 0.4 });
+  const trail = new THREE.Mesh(trailGeo, trailMat);
+  packet.add(trail);
+
+  dataPackets.push({ mesh: packet, from, to, progress: 0, speed: 0.012 + Math.random() * 0.006 });
+}
+
+function updateDataPackets() {
+  for (let i = dataPackets.length - 1; i >= 0; i--) {
+    const p = dataPackets[i];
+    p.progress += p.speed;
+    if (p.progress >= 1) {
+      scene.remove(p.mesh);
+      dataPackets.splice(i, 1);
+      // Flash antenna tip on arrival
+      serverTower.userData.antennaTip.material.color.set(0xffffff);
+      setTimeout(() => serverTower.userData.antennaTip.material.color.set(0x00aaff), 200);
+      playBeep(1100, 0.04);
+      continue;
+    }
+    // Arc trajectory
+    const t = p.progress;
+    const arcH = 10;
+    p.mesh.position.lerpVectors(p.from, p.to, t);
+    p.mesh.position.y += arcH * Math.sin(Math.PI * t);
+    // Pulse scale
+    const s = 1 + Math.sin(t * Math.PI * 6) * 0.3;
+    p.mesh.scale.set(s, s, s);
+  }
+}
+
+// ══════════════════════════════════════════
+//  3D WEB SYNC: Launch packets from booths
+// ══════════════════════════════════════════
+async function doWebSync3D(laneIdx, laneNum) {
+  addLog('📡 L0'+laneNum+': Sending data packets to server tower...', '');
+  showGTANotif('📡 WEB SYNC', 'Lane-0'+laneNum+' → Server Tower', false);
+  // Camera locks toward server for this sequence
+  const prevMode = cameraMode;
+  cameraMode = 'server_sync';
+
+  // Burst 5 packets from this lane booth
+  for (let p = 0; p < 5; p++) {
+    spawnDataPacket(laneIdx);
+    await sleep(300);
+  }
+  await sleep(2500); // let packets fly
+  cameraMode = prevMode;
+}
+
+// ══════════════════════════════════════════
+//  3D EASY MONEY: Customer walks + top-up
+// ══════════════════════════════════════════
+let customerTargetX = -30;
+let customerWalking = false;
+let customerAtKiosk = false;
+
+async function doEasyMoney3D() {
+  customerGroup.visible = true;
+  customerGroup.position.set(-32, 0, 5);
+  customerTargetX = -32;
+  customerWalking = false;
+  customerAtKiosk = false;
+
+  // Step: walk toward kiosk
+  addLog('🧑 Customer walking to Easy Money kiosk...', '');
+  showGTANotif('💰 CUSTOMER ARRIVING', 'Walking to Easy Money kiosk');
+  const prevMode = cameraMode;
+  cameraMode = 'kiosk';
+  customerWalking = true;
+  customerTargetX = -27;
+  await sleep(3000);
+  customerWalking = false;
+  customerAtKiosk = true;
+  customerGroup.rotation.y = Math.PI / 2; // face kiosk
+
+  // Screen lights up
+  kioskGroup.userData.screenMat.color.set(0x00ff88);
+  kioskGroup.userData.screenMat.opacity = 0.95;
+  addLog('🏪 Customer at kiosk — screen active', '');
+  showGTANotif('🏪 KIOSK ACTIVE', 'Touch screen — Enter M-Tag number');
+  await sleep(1500);
+
+  // Phone lights up
+  customerGroup.userData.phoneScreenMat.color.set(0x00ff88);
+  customerGroup.userData.phoneScreenMat.opacity = 0.9;
+  addLog('📱 Customer entering M-Tag on phone...', '');
+  showGTANotif('📱 M-TAG ENTRY', 'Typing tag number on phone');
+  playBeep(1000, 0.05);
+  await sleep(2000);
+
+  // Processing — screen pulses blue
+  kioskGroup.userData.screenMat.color.set(0x0088ff);
+  addLog('💳 Processing ₹200 payment...', '');
+  showGTANotif('💳 PROCESSING', '₹200 payment via Easy Money');
+  playBeep(660, 0.12);
+  await sleep(1800);
+
+  // Packet from kiosk to phone (visual)
+  const kioskPacket = new THREE.Mesh(
+    new THREE.SphereGeometry(0.18, 6, 6),
+    new THREE.MeshBasicMaterial({ color: 0xffd700 })
+  );
+  kioskPacket.position.set(-26, 2.5, -5);
+  scene.add(kioskPacket);
+  const kFrom = new THREE.Vector3(-26, 2.5, -5);
+  const kTo   = new THREE.Vector3(-29.5, 1.8, 5);
+  const kpData = { mesh: kioskPacket, from: kFrom, to: kTo, progress: 0, speed: 0.025 };
+  dataPackets.push(kpData);
+  await sleep(1200);
+
+  // Balance update — screen green explosion
+  kioskGroup.userData.screenMat.color.set(0x00ff88);
+  customerGroup.userData.phoneScreenMat.color.set(0xffd700);
+  addLog('✓ ₹200 top-up COMPLETE — balance updated on phone', 'success');
+  showGTANotif('✓ TOP-UP SUCCESS!', 'New balance: ₹' + (balance) + ' — M-Tag updated');
+  playBeep(880, 0.08);
+  setTimeout(() => playBeep(1100, 0.08), 120);
+  await sleep(2000);
+
+  // Customer waves and walks away
+  customerTargetX = -35;
+  customerWalking = true;
+  addLog('🧑 Customer leaving kiosk...', '');
+  showGTANotif('CUSTOMER LEAVING', 'Transaction complete — Thank you!');
+  await sleep(2500);
+  customerWalking = false;
+  customerGroup.visible = false;
+  customerAtKiosk = false;
+  kioskGroup.userData.screenMat.color.set(0x00ff8855);
+  kioskGroup.userData.screenMat.opacity = 0.5;
+  customerGroup.userData.phoneScreenMat.opacity = 0;
+  cameraMode = prevMode;
+}
+
+// ── RAIN ──
+const rainCount = 1500;
+const rainGeo = new THREE.BufferGeometry();
+const rainPos = new Float32Array(rainCount * 3);
+const rainVel = new Float32Array(rainCount);
+for (let i = 0; i < rainCount; i++) {
+  rainPos[i*3]   = (Math.random() - 0.5) * 80;
+  rainPos[i*3+1] = Math.random() * 50;
+  rainPos[i*3+2] = (Math.random() - 0.5) * 80;
+  rainVel[i] = 0.4 + Math.random() * 0.4;
+}
+rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+const rainMat = new THREE.PointsMaterial({ color: 0x8899bb, size: 0.12, transparent: true, opacity: 0.35 });
+const rain = new THREE.Points(rainGeo, rainMat);
+scene.add(rain);
+
+// ── CARS ──
+const carColors = [0x1e6fe0, 0xe03030, 0x30c050, 0xf0c030, 0xffffff, 0x8030e0, 0x30e0e0, 0xff6600];
+const CAR_START_Z = 60, CAR_WAIT_Z = 12, CAR_BARRIER_Z = 4, CAR_END_Z = -70;
+const laneCars = [null, null, null];
+const laneCarTargetZ = [CAR_START_Z, CAR_START_Z, CAR_START_Z];
+
+function createCar3D(color, isBlacklisted) {
+  const g = new THREE.Group();
+  const bodyColor = isBlacklisted ? 0xaa0000 : color;
+  const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.25, metalness: 0.75 });
+  if (isBlacklisted) bodyMat.emissive = new THREE.Color(0x440000);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.95, 4.2), bodyMat);
+  body.position.y = 0.75; body.castShadow = true;
+  g.add(body);
+  const cabinMat = new THREE.MeshStandardMaterial({ color: 0xaaccdd, transparent: true, opacity: 0.7, roughness: 0.05, metalness: 0.1 });
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.75, 2), cabinMat);
+  cabin.position.set(0, 1.65, -0.25); g.add(cabin);
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9, metalness: 0.1 });
+  [[-1.1,0.35,1.3],[1.1,0.35,1.3],[-1.1,0.35,-1.3],[1.1,0.35,-1.3]].forEach(p => {
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,0.3,8), wheelMat);
+    w.position.set(...p); w.rotation.z = Math.PI/2; g.add(w);
+  });
+  const hlMat = new THREE.MeshBasicMaterial({ color: 0xffffcc });
+  const tlMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+  const sg = new THREE.SphereGeometry(0.15,4,4);
+  [[-0.7,0.7,-2.3],[0.7,0.7,-2.3]].forEach(p => { const m=new THREE.Mesh(sg,hlMat); m.position.set(...p); g.add(m); });
+  [[-0.7,0.7,2.3],[0.7,0.7,2.3]].forEach(p => { const m=new THREE.Mesh(sg,tlMat); m.position.set(...p); g.add(m); });
+  g.userData.isBlacklisted = isBlacklisted;
+  g.userData.bodyMat = bodyMat;
+  return g;
+}
+
+// ── POLICE CAR ──
+let policeCarActive = false, policeTargetLane = -1;
+const policeCar = (function() {
+  const g = createCar3D(0x111155, false);
+  g.userData.bodyMat.color.set(0x111155);
+  const lightBar = new THREE.Group();
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(1.6,0.2,0.5), new THREE.MeshBasicMaterial({color:0x222233}));
+  bar.position.set(0,2.1,0); lightBar.add(bar);
+  const redS = new THREE.Mesh(new THREE.SphereGeometry(0.15,4,4), new THREE.MeshBasicMaterial({color:0xff0000}));
+  redS.position.set(-0.5,2.3,0); lightBar.add(redS);
+  const blueS = new THREE.Mesh(new THREE.SphereGeometry(0.15,4,4), new THREE.MeshBasicMaterial({color:0x0044ff}));
+  blueS.position.set(0.5,2.3,0); lightBar.add(blueS);
+  g.add(lightBar);
+  g.userData.redSphere = redS;
+  g.userData.blueSphere = blueS;
+  g.position.set(20, 0, 80);
+  return g;
+})();
+scene.add(policeCar);
+
+// ── MINIMAP ──
+const mmCanvas = document.getElementById('minimapCanvas');
+const mmCtx = mmCanvas.getContext('2d');
+function drawMinimap() {
+  mmCtx.fillStyle = '#0a1a0a'; mmCtx.fillRect(0,0,200,140);
+  mmCtx.fillStyle = '#1a2a1a'; mmCtx.fillRect(70,0,60,140);
+  mmCtx.strokeStyle = '#ffcc0044'; mmCtx.setLineDash([4,4]); mmCtx.lineWidth=1;
+  [90,100,110].forEach(x => { mmCtx.beginPath(); mmCtx.moveTo(x,0); mmCtx.lineTo(x,140); mmCtx.stroke(); });
+  mmCtx.setLineDash([]);
+  mmCtx.fillStyle = '#00ff8833'; mmCtx.fillRect(70,65,60,3);
+  laneX.forEach((lx,i) => {
+    if(laneCars[i]) {
+      const mx=90+i*10, mz=70-(laneCars[i].position.z/80)*60;
+      mmCtx.fillStyle = laneCars[i].userData.isBlacklisted ? '#ff3333' : '#00ff88';
+      mmCtx.fillRect(mx-2, mz-3, 5, 7);
+    }
+  });
+  if(policeCarActive) {
+    const px=90+(policeCar.position.x/9)*10, pz=70-(policeCar.position.z/80)*60;
+    mmCtx.fillStyle='#8855ff'; mmCtx.fillRect(px-2,pz-3,5,7);
+  }
+  mmCtx.fillStyle='rgba(0,255,136,0.5)'; mmCtx.font='8px Orbitron,sans-serif';
+  mmCtx.fillText('N-5',5,12); mmCtx.fillText('TOLL',72,63);
+}
+
+// ── LIGHT MODE TOGGLE ──
+function setLightMode(on) {
+  scene.userData.lightMode = on;
+  document.body.classList.toggle('light-mode', on);
+  document.getElementById('lightModeBtn').textContent = on ? '🌙 DARK' : '☀ LIGHT';
+  if (on) {
+    scene.background.setHex(0x87ceeb);
+    scene.fog.color.setHex(0x87ceeb);
+    scene.fog.near = 100;
+    scene.fog.far = 350;
+    ambient.color.setHex(0xffffff);
+    ambient.intensity = 1.8;
+    sunLight.color.setHex(0xffffff);
+    sunLight.intensity = 1.4;
+    sunLight.position.set(-15, 55, 30);
+    tollGlow.color.setHex(0xffffcc);
+    tollGlow.intensity = 0.6;
+    ground.material.color.setHex(0x2d7a30);
+    road.material.color.setHex(0x252830);
+    laneLights.forEach(ll => { ll.intensity = 0.3; ll.color.setHex(0xffffcc); });
+  } else {
+    scene.background.setHex(0x0d1820);
+    scene.fog.color.setHex(0x0d1820);
+    scene.fog.near = 80;
+    scene.fog.far = 280;
+    ambient.color.setHex(0x445566);
+    ambient.intensity = 1.3;
+    sunLight.color.setHex(0xffeedd);
+    sunLight.intensity = 1.0;
+    sunLight.position.set(-20, 45, 25);
+    tollGlow.color.setHex(0xffdd88);
+    tollGlow.intensity = 1.4;
+    ground.material.color.setHex(0x1a3d1a);
+    road.material.color.setHex(0x15181c);
+    laneLights.forEach(ll => { ll.intensity = 2.0; ll.color.setHex(0xffcc66); });
+  }
+}
+document.getElementById('lightModeBtn').onclick = () => setLightMode(!scene.userData.lightMode);
+
+// ── CAMERA MODES ──
+let cameraMode = 'cinematic', cameraAngle = 0;
+document.getElementById('camBtn1').onclick = () => { cameraMode='cinematic'; updateCamBtns(); };
+document.getElementById('camBtn2').onclick = () => { cameraMode='topdown';   updateCamBtns(); };
+document.getElementById('camBtn3').onclick = () => { cameraMode='side';      updateCamBtns(); };
+function updateCamBtns() {
+  document.querySelectorAll('.cam-btn').forEach(b=>b.classList.remove('active'));
+  const map = { cinematic:'camBtn1', topdown:'camBtn2', side:'camBtn3' };
+  document.getElementById(map[cameraMode]).classList.add('active');
+}
+
+// ── ANIMATION LOOP ──
+let rainFrame = 0;
+let camTargetPos = new THREE.Vector3();
+let camTargetLook = new THREE.Vector3();
+let camSmoothPos = new THREE.Vector3(0, 28, 50);
+
+function animate(time) {
+  requestAnimationFrame(animate);
+  cameraAngle += 0.0006;
+  const t = time * 0.001;
+
+  // Camera modes
+  if (cameraMode === 'cinematic') {
+    camTargetPos.set(Math.sin(cameraAngle)*42, 24 + Math.sin(cameraAngle*0.5)*4, Math.cos(cameraAngle)*42);
+    camTargetLook.set(0, 2, 0);
+  } else if (cameraMode === 'topdown') {
+    camTargetPos.set(0, 60, 2); camTargetLook.set(0, 0, 0);
+  } else if (cameraMode === 'side') {
+    camTargetPos.set(42, 14, 8); camTargetLook.set(0, 3, 0);
+  } else if (cameraMode === 'server_sync') {
+    // Zoom toward server tower
+    camTargetPos.set(18, 18, 8); camTargetLook.set(28, 6, -15);
+  } else if (cameraMode === 'kiosk') {
+    // Zoom toward Easy Money kiosk
+    camTargetPos.set(-16, 10, 4); camTargetLook.set(-26, 2, -5);
+  }
+  camSmoothPos.lerp(camTargetPos, 0.04);
+  camera.position.copy(camSmoothPos);
+  camera.lookAt(camTargetLook);
+
+  // Rain
+  rainFrame++;
+  if(rainFrame%2===0) {
+    const pos = rain.geometry.attributes.position.array;
+    for(let i=0;i<rainCount;i++) {
+      pos[i*3+1]-=rainVel[i]*2;
+      if(pos[i*3+1]<0){ pos[i*3+1]=40+Math.random()*10; pos[i*3]=(Math.random()-0.5)*80; pos[i*3+2]=(Math.random()-0.5)*80; }
+    }
+    rain.geometry.attributes.position.needsUpdate=true;
+  }
+
+  // Barriers
+  barriers.forEach(b => {
+    if(b.isOpen && b.currentAngle<Math.PI/2) { b.currentAngle+=0.07; b.pivot.rotation.z=b.currentAngle; }
+    else if(!b.isOpen && b.currentAngle>0) { b.currentAngle-=0.05; b.pivot.rotation.z=Math.max(0,b.currentAngle); }
+    b.pivot.children.forEach(c=>{ if(c.geometry&&c.geometry.parameters&&c.geometry.parameters.height===0.22) { c.material.color.set(b.isOpen?0x00aa44:0xff6b00); } });
+  });
+
+  // Police lights
+  if(policeCarActive) {
+    const fl=Math.sin(t*6)>0;
+    policeCar.userData.redSphere.visible=fl;
+    policeCar.userData.blueSphere.visible=!fl;
+  }
+
+  // Car movement
+  laneX.forEach((lx,i) => {
+    if(laneCars[i]) {
+      const diff=laneCarTargetZ[i]-laneCars[i].position.z;
+      if(Math.abs(diff)>0.05) laneCars[i].position.z+=diff*0.022;
+      if(laneCars[i].userData.isBlacklisted) {
+        const s=1+Math.sin(t*4)*0.025;
+        laneCars[i].scale.set(s,s,s);
+        laneCars[i].userData.bodyMat.emissive.setHex(Math.sin(t*5)>0?0x440000:0x880000);
+      }
+    }
+  });
+
+  // Police approach
+  if(policeCarActive && policeTargetLane>=0) {
+    const tx=laneX[policeTargetLane]+5, tz=8;
+    policeCar.position.x+=(tx-policeCar.position.x)*0.03;
+    policeCar.position.z+=(tz-policeCar.position.z)*0.03;
+  } else {
+    policeCar.position.x+=(20-policeCar.position.x)*0.02;
+    policeCar.position.z+=(80-policeCar.position.z)*0.02;
+  }
+
+  // ── SERVER TOWER ANIMATIONS ──
+  // Antenna tip pulse
+  const tipPulse = 0.6 + Math.sin(t * 3) * 0.4;
+  serverTower.userData.antennaTip.material.opacity = tipPulse;
+  // Signal rings expand + fade
+  signalRings.forEach((ring, i) => {
+    const phase = (t * 0.5 + ring.userData.offset) % 1;
+    const sc = 1 + phase * 3;
+    ring.scale.set(sc, sc, 1);
+    ring.material.opacity = (1 - phase) * 0.4;
+  });
+  // Server LED blink
+  serverTower.children.forEach(c => {
+    if (c.geometry && c.position.z > 1.7 && c.material && c.material.isMeshBasicMaterial && c.geometry.type === 'BoxGeometry' && c.geometry.parameters && c.geometry.parameters.width < 0.2) {
+      c.material.opacity = 0.5 + Math.sin(t * 8 + c.position.y) * 0.5;
+      c.material.transparent = true;
+    }
+  });
+  // Rotate dish slightly
+  dish.rotation.y = t * 0.4;
+
+  // ── DATA PACKETS ──
+  updateDataPackets();
+
+  // ── CUSTOMER ANIMATION ──
+  if (customerGroup.visible) {
+    // Walk toward target
+    if (customerWalking) {
+      customerGroup.position.x += (customerTargetX - customerGroup.position.x) * 0.03;
+      // Bob up/down while walking
+      customerGroup.position.y = Math.abs(Math.sin(t * 5)) * 0.12;
+      // Leg swing (rotate body slightly)
+      customerGroup.rotation.y = (customerTargetX < customerGroup.position.x) ? Math.PI : 0;
+    }
+    // Phone screen pulse when at kiosk
+    if (customerAtKiosk) {
+      const pp = 0.7 + Math.sin(t * 6) * 0.3;
+      customerGroup.userData.phoneScreenMat.opacity = pp * (customerGroup.userData.phoneScreenMat.opacity > 0 ? 1 : 0);
+      kioskGroup.userData.screenMat.opacity = 0.7 + Math.sin(t * 4) * 0.25;
+    }
+    // Kiosk screen idle pulse
+    kSign.material.opacity = 0.6 + Math.sin(t * 2) * 0.3;
+  }
+
+  if(rainFrame%4===0) drawMinimap();
+  renderer.render(scene, camera);
+}
+animate(0);
+
+window.addEventListener('resize', () => {
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ═══════════════════════════════════════════
+//  SIMULATION LOGIC
+// ═══════════════════════════════════════════
+const TOLL = 75, CPL = 10;
+let balance=450, passed=0, blCount=0, totalRevenue=0, easyDone=false;
+let lanePassed=[0,0,0], laneDeducted=[0,0,0];
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function rndTag(){ return 'NHA-'+Math.random().toString(36).slice(2,8).toUpperCase(); }
+
+// Clock
+setInterval(()=>{ document.getElementById('clockEl').textContent=new Date().toLocaleTimeString('en-GB'); },1000);
+document.getElementById('clockEl').textContent=new Date().toLocaleTimeString('en-GB');
+
+// Audio
+let ac=null;
+function initAC(){ if(!ac) ac=new(window.AudioContext||window.webkitAudioContext)(); }
+function playSiren(){
+  if(!ac)return;
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.connect(g);g.connect(ac.destination);
+  o.type='sawtooth'; g.gain.setValueAtTime(0.07,ac.currentTime);
+  o.frequency.setValueAtTime(380,ac.currentTime);
+  o.frequency.linearRampToValueAtTime(920,ac.currentTime+0.35);
+  o.frequency.linearRampToValueAtTime(380,ac.currentTime+0.7);
+  o.frequency.linearRampToValueAtTime(920,ac.currentTime+1.05);
+  o.frequency.linearRampToValueAtTime(380,ac.currentTime+1.4);
+  g.gain.linearRampToValueAtTime(0,ac.currentTime+1.6);
+  o.start();o.stop(ac.currentTime+1.65);
+}
+function playBeep(freq,dur){
+  if(!ac)return;
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.connect(g);g.connect(ac.destination);
+  o.type='square';o.frequency.value=freq||880;
+  g.gain.setValueAtTime(0.035,ac.currentTime);
+  g.gain.linearRampToValueAtTime(0,ac.currentTime+(dur||0.1));
+  o.start();o.stop(ac.currentTime+(dur||0.12));
+}
+
+// Log
+function addLog(msg,cls){
+  const p=document.getElementById('logPanel');
+  const e=document.createElement('div');
+  e.className='log-entry'+(cls?' '+cls:'');
+  e.textContent=new Date().toLocaleTimeString('en-GB')+' '+msg;
+  p.appendChild(e);
+  p.scrollTop=p.scrollHeight;
+  while(p.children.length>35) p.children[1].remove();
+}
+
+// Notification
+let notifTimer=null;
+function showGTANotif(text,sub,isAlert){
+  const el=document.getElementById('gtaNotif');
+  document.getElementById('gtaNotifText').textContent=text;
+  document.getElementById('gtaNotifSub').textContent=sub||'';
+  el.className='gta-notif show'+(isAlert?' alert':'');
+  if(notifTimer) clearTimeout(notifTimer);
+  notifTimer=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+function updateAll(){
+  document.getElementById('totalPassed').textContent=passed;
+  document.getElementById('totalBl').textContent=blCount;
+  document.getElementById('totalRev').textContent='₹'+totalRevenue;
+  document.getElementById('moneyVal').textContent='₹'+totalRevenue;
+  document.getElementById('bigTotal').textContent=passed;
+  document.getElementById('progFill').style.width=Math.round((passed/30)*100)+'%';
+}
+
+// ── ALARM ──
+async function triggerAlarm(laneNum, tag, vehType, li){
+  addLog('🔴 ALARM — BLACKLISTED VEHICLE DETECTED','alert');
+  showGTANotif('⚠ BLACKLISTED','LANE-0'+laneNum+' · '+tag+' · '+vehType,true);
+  document.getElementById('alarmOverlay').classList.add('active');
+  document.getElementById('sirenBar').classList.add('active');
+  playSiren();
+  await sleep(1500);
+  const ww=document.getElementById('wantedWrap');
+  ww.classList.add('active');
+  addLog('⭐⭐⭐ WANTED LEVEL INCREASED','alert');
+  playSiren();
+  await sleep(1500);
+  addLog('🚔 POLICE UNIT DISPATCHED TO LANE-0'+laneNum,'police');
+  showGTANotif('🚔 POLICE DISPATCHED','En route to LANE-0'+laneNum+' — Barrier LOCKED',true);
+  document.getElementById('pp-tag').textContent=tag;
+  document.getElementById('pp-lane').textContent='LANE-0'+laneNum;
+  document.getElementById('pp-veh').textContent=vehType;
+  document.getElementById('pp-time').textContent=new Date().toLocaleTimeString('en-GB');
+  document.getElementById('policePopup').classList.add('active');
+  policeCarActive=true; policeTargetLane=li;
+  await sleep(2000);
+  addLog('🚔 POLICE ON SCENE — Vehicle detained','police');
+  showGTANotif('🚔 POLICE ON SCENE','Vehicle detained · LANE-0'+laneNum,true);
+  await sleep(2000);
+  document.getElementById('alarmOverlay').classList.remove('active');
+  document.getElementById('sirenBar').classList.remove('active');
+  addLog('📋 Vehicle detained. Report filed.','police');
+  await sleep(1000);
+  policeCarActive=false; policeTargetLane=-1;
+  ww.classList.remove('active');
+  document.getElementById('moneyDisplay').style.display='';
+}
+
+// ── SYNC (with 3D packets + network flow diagram) ──
+async function doSync(laneIdx){
+  const li=laneIdx, ln=li+1;
+  const overlay=document.getElementById('serverSyncOverlay');
+  const titleEl=document.getElementById('syncTitle');
+  const laneEl=document.getElementById('syncLane');
+  const fill=document.getElementById('syncProgressFill');
+  const detail=document.getElementById('syncDetail');
+  const timerEl=document.getElementById('syncTimer');
+  overlay.classList.add('active');
+  titleEl.textContent='📡 CARRYING LANE-0'+ln+' DATA → MAIN SERVER';
+  laneEl.textContent='LANE-0'+ln;
+  detail.textContent=lanePassed[li]+' vehicles · ₹'+laneDeducted[li]+' revenue';
+  fill.style.width='0%'; timerEl.textContent='5s';
+  addLog('📡 LANE-0'+ln+' → Main Server (5s)','');
+
+  // Highlight network flow nodes
+  const nodeEl=document.getElementById('nn-'+li);
+  const mainEl=document.getElementById('nn-main');
+  const arrows=document.querySelectorAll('.net-arrow');
+  if(nodeEl) nodeEl.classList.add('active-sync');
+  if(mainEl) mainEl.classList.add('syncing');
+  arrows.forEach(a=>a.classList.add('active'));
+
+  // Launch 3D data packets while progress bar runs
+  doWebSync3D(li, ln);
+
+  for(let s=1;s<=5;s++){
+    await sleep(1000);
+    fill.style.width=(s*20)+'%'; timerEl.textContent=(5-s)+'s';
+    if(s===1) detail.textContent='📦 Packing '+lanePassed[li]+' vehicle records...';
+    if(s===2) detail.textContent='🔒 Encrypting data via TLS 1.3...';
+    if(s===3) detail.textContent='📤 Uploading to NHA Main Server...';
+    if(s===4) detail.textContent='⚙ Server processing & storing...';
+    if(s===5) detail.textContent='✓ LANE-0'+ln+' DATA RECEIVED BY MAIN SERVER';
+    if(s===2 || s===4) spawnDataPacket(li);
+  }
+  playBeep(660,0.1);
+  addLog('✓ LANE-0'+ln+' synced → Main Server ('+lanePassed[li]+' vehicles, ₹'+laneDeducted[li]+')','success');
+
+  // Update network flow counts
+  if(nodeEl){ nodeEl.querySelector('.nn-count').textContent=lanePassed[li]; nodeEl.classList.remove('active-sync'); }
+  if(mainEl){ mainEl.querySelector('.nn-count').textContent=passed; mainEl.classList.remove('syncing'); }
+  arrows.forEach(a=>a.classList.remove('active'));
+  const syncTimeEl=document.getElementById('netSyncTime');
+  if(syncTimeEl) syncTimeEl.textContent='LAST SYNC: '+new Date().toLocaleTimeString('en-GB');
+
+  await sleep(800);
+  overlay.classList.remove('active');
+  await sleep(400);
+}
+
+// ── EASY MONEY (with tag typing + mobile app visuals) ──
+async function doEasyMoney(tag){
+  if(easyDone)return; easyDone=true;
+  addLog('','');
+  addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','');
+  addLog('💰 EASY MONEY / PAISA — MOBILE TOP-UP','');
+  addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','');
+
+  // Fire 3D kiosk animation alongside HUD updates
+  doEasyMoney3D();
+
+  // Step 1: Customer approaching kiosk
+  document.getElementById('em-cust').textContent='Walking to kiosk...';
+  document.getElementById('em-shop').textContent='Kiosk online';
+  showGTANotif('💰 CUSTOMER ARRIVING','Walking to Easy Money kiosk');
+  addLog('🧑 Customer walking to Easy Money kiosk...','');
+  await sleep(2200);
+
+  // Step 2: At kiosk — screen active
+  document.getElementById('em-cust').textContent='At counter';
+  document.getElementById('em-shop').textContent='Touch screen active';
+  addLog('🏪 Customer at kiosk — touch screen active','');
+  showGTANotif('🏪 KIOSK ACTIVE','Touch screen ready for input');
+  await sleep(1500);
+
+  // Step 3: TAG NUMBER TYPING (character by character!)
+  const tagRow=document.getElementById('tagEntryRow');
+  const tagEl=document.getElementById('em-tagEntry');
+  if(tagRow) tagRow.style.display='flex';
+  document.getElementById('em-shop').textContent='Entering M-Tag number...';
+  addLog('🏷 Customer typing M-Tag number on kiosk screen...','');
+  showGTANotif('🏷 ENTERING TAG NUMBER','Typing M-Tag ID on kiosk touchscreen...');
+  const fullTag=tag;
+  if(tagEl) tagEl.textContent='TAG: ';
+  for(let c=0;c<fullTag.length;c++){
+    await sleep(200);
+    if(tagEl) tagEl.textContent='TAG: '+fullTag.substring(0,c+1)+'_';
+    playBeep(1000+Math.random()*400,0.03);
+  }
+  if(tagEl) tagEl.textContent='TAG: '+fullTag+' ✓';
+  playBeep(880,0.08);
+  addLog('🏷 Tag entered: '+fullTag,'success');
+  showGTANotif('✓ TAG VERIFIED',fullTag+' found in NHA database');
+  await sleep(1500);
+
+  // Step 4: Select top-up amount
+  document.getElementById('em-shop').textContent='Amount: ₹200 selected';
+  addLog('💵 Top-up amount: ₹200 selected','');
+  showGTANotif('💵 AMOUNT: ₹200','Cash top-up via Easy Money kiosk');
+  await sleep(1200);
+
+  // Step 5: Processing payment
+  document.getElementById('em-shop').textContent='Processing ₹200...';
+  document.getElementById('em-status').textContent='PROCESSING...';
+  addLog('💳 Processing ₹200 cash payment...','');
+  showGTANotif('💳 PROCESSING PAYMENT','₹200 cash received — verifying');
+  playBeep(660,0.12);
+  const phone=document.getElementById('phoneMini');
+  const phoneMsg=document.getElementById('pm-msg');
+  if(phoneMsg){ phoneMsg.style.display='block'; phoneMsg.textContent='VERIFYING...'; }
+  phone.classList.add('updating');
+  await sleep(2000);
+
+  // Step 6: Writing to M-Tag NFC chip
+  document.getElementById('em-shop').textContent='Writing to M-Tag chip...';
+  document.getElementById('em-status').textContent='WRITING NFC...';
+  addLog('📶 Writing ₹200 to M-Tag NFC chip...','');
+  showGTANotif('📡 UPDATING M-TAG','Data: kiosk → NFC chip → phone app');
+  if(phoneMsg) phoneMsg.textContent='UPDATING...';
+  await sleep(1800);
+
+  // Step 7: SUCCESS — Balance updated!
+  balance+=200;
+  document.getElementById('phoneBal').textContent='₹'+balance;
+  phone.classList.remove('updating');
+  if(phoneMsg) phoneMsg.style.display='none';
+  document.getElementById('em-status').textContent='✓ ₹200 TOPPED UP';
+  document.getElementById('em-cust').textContent='✓ Phone balance updated!';
+  document.getElementById('em-shop').textContent='Transaction complete';
+  playBeep(880,0.08); setTimeout(()=>playBeep(1100,0.08),120);
+  for(let i=0;i<3;i++) document.getElementById('l'+(i+1)+'-bal').textContent='₹'+balance;
+  addLog('✓ TOP-UP SUCCESS! New balance: ₹'+balance,'success');
+  showGTANotif('✓ TOP-UP SUCCESS!','M-Tag '+fullTag+' — Balance: ₹'+balance);
+  await sleep(2000);
+
+  // Step 8: Mobile SMS notification
+  phone.classList.add('updating');
+  if(phoneMsg){ phoneMsg.style.display='block'; phoneMsg.textContent='SMS SENT ✓'; }
+  document.getElementById('em-cust').textContent='📱 SMS notification sent';
+  addLog('📱 Mobile notification sent to customer phone','');
+  showGTANotif('📱 MOBILE NOTIFIED','Balance SMS sent to customer');
+  await sleep(1500);
+  phone.classList.remove('updating');
+  if(phoneMsg) phoneMsg.style.display='none';
+
+  // Step 9: Customer leaving
+  document.getElementById('em-cust').textContent='Customer leaving...';
+  addLog('🧑 Customer walking away from kiosk','');
+  showGTANotif('CUSTOMER LEAVING','Transaction complete — Thank you!');
+  await sleep(2500);
+  document.getElementById('em-cust').textContent='✓ Done';
+  if(tagRow) tagRow.style.display='none';
+}
+
+// ── ADMIN SERVER SYNC ──
+async function showAdminServerSync(){
+  const overlay=document.getElementById('adminServer');
+  const dataLogs=document.getElementById('adminDataLogs');
+  const gfxLogs=document.getElementById('adminGraphicsLogs');
+  dataLogs.innerHTML='';
+  gfxLogs.innerHTML='<div class="ap-row" style="opacity:0.5;">Awaiting visuals...</div>';
+  overlay.classList.add('active');
+  playBeep(900,0.1);
+  const addA=(el,text,type)=>{ const d=document.createElement('div'); d.className='ap-row '+(type||''); d.textContent='► '+text; el.appendChild(d); el.scrollTop=el.scrollHeight; };
+  const addProg=(el)=>{ const w=document.createElement('div'); w.className='admin-progress'; const b=document.createElement('div'); b.className='admin-bar'; w.appendChild(b); el.appendChild(w); setTimeout(()=>b.style.width='100%',50); };
+  addA(dataLogs,'ESTABLISHING SECURE CONNECTION...','info');
+  await sleep(1500);
+  addA(dataLogs,'Fetching LANE-01 Local Data...');
+  addProg(dataLogs);
+  await sleep(1200);
+  addA(dataLogs,'✓ LANE-01 Synchronized (Normal Pass)','highlight');
+  gfxLogs.innerHTML='';
+  addA(gfxLogs,'Rendering Plate: AB-1234.jpg','info');
+  addA(gfxLogs,'Status: VALID · Balance: ₹375','highlight');
+  await sleep(1500);
+  addA(dataLogs,'Fetching LANE-02 Local Data...');
+  addProg(dataLogs);
+  await sleep(1200);
+  addA(dataLogs,'⚠ LANE-02 Synchronized (WANTED ALARM)','danger');
+  addA(gfxLogs,'Rendering Plate: XYZ-9999.jpg','info');
+  addA(gfxLogs,'Status: BLACKLISTED — Match Found!','danger');
+  await sleep(1500);
+  addA(dataLogs,'UPDATING CENTRAL DATABASE...','info');
+  await sleep(1200);
+  addA(dataLogs,'SYNC COMPLETE. ALL GRAPHICS RENDERED.','highlight');
+  addA(gfxLogs,'Dashboard fully updated.','highlight');
+  await sleep(3500);
+  overlay.classList.remove('active');
+  await sleep(500);
+}
+
+// ── SINGLE CAR PROCESSING ──
+const TAGS = ['FASTag','Paytm FASTag','ICICI Tag','AXIS Tag'];
+const VEHTYPES = ['Sedan','SUV','Truck','Mini Van','City Bus','Hatchback'];
+
+async function runCar(li, isBl, tag){
+  const ln=li+1;
+  const name=TAGS[Math.floor(Math.random()*TAGS.length)];
+  const vehType=VEHTYPES[Math.floor(Math.random()*VEHTYPES.length)];
+  const lc=document.getElementById('lc-'+li);
+  const lcDot=document.getElementById('lc-dot-'+li);
+  const rfidHud=document.getElementById('rfid-hud-'+li);
+  const statusEl=document.getElementById('l'+ln+'-status');
+  const balEl=document.getElementById('l'+ln+'-bal');
+  const dedEl=document.getElementById('l'+ln+'-deducted');
+
+  // Create car
+  const car3D=createCar3D(carColors[Math.floor(Math.random()*carColors.length)], isBl);
+  car3D.position.set(laneX[li],0,CAR_START_Z);
+  scene.add(car3D);
+  laneCars[li]=car3D;
+  laneCarTargetZ[li]=CAR_START_Z;
+
+  lc.classList.remove('bl-active');
+  lcDot.classList.remove('danger');
+  rfidHud.className='lc-rfid';
+  rfidHud.textContent='RFID: WAITING...';
+  statusEl.textContent='INCOMING';
+  statusEl.style.color='#00aaff';
+  addLog('🚗 L'+ln+': '+vehType+' approaching ['+tag+']','');
+  showGTANotif('🚗 VEHICLE INCOMING','LANE-0'+ln+' · '+vehType);
+  await sleep(800);
+
+  // Approach
+  laneCarTargetZ[li]=CAR_WAIT_Z;
+  statusEl.textContent='APPROACHING';
+  await sleep(2500);
+
+  // RFID Scan
+  rfidHud.className='lc-rfid reading';
+  rfidHud.textContent='RFID: SCANNING...';
+  statusEl.textContent='SCANNING';
+  statusEl.style.color='#ffaa00';
+  addLog('📡 L'+ln+': RFID scanning tag...','');
+  showGTANotif('📡 RFID SCANNING','LANE-0'+ln+' — Reading tag...');
+  playBeep(1200,0.05);
+  await sleep(1200);
+
+  rfidHud.textContent='RFID: '+name+' · '+tag;
+  addLog('📡 L'+ln+': Tag read — '+name+' ['+tag+'] · '+vehType,'');
+  playBeep(800,0.06);
+  await sleep(1000);
+
+  // CCTV Flash
+  statusEl.textContent='CCTV REC';
+  statusEl.style.color='#fff';
+  addLog('📷 L'+ln+': CCTV recording plate...','');
+  showGTANotif('CCTV RECORDING','Capturing plate ['+tag+']');
+  const flash=document.getElementById('cctvFlash');
+  flash.classList.add('active');
+  setTimeout(()=>flash.classList.remove('active'),150);
+  playBeep(1500,0.02);
+  await sleep(1500);
+  addLog('✓ L'+ln+': Video saved to server.','success');
+  await sleep(800);
+
+  // BLACKLISTED PATH
+  if(isBl){
+    rfidHud.className='lc-rfid blacklisted';
+    rfidHud.textContent='⛔ BLACKLISTED: '+tag;
+    lc.classList.add('bl-active');
+    lcDot.classList.add('danger');
+    statusEl.textContent='⛔ BLOCKED';
+    statusEl.style.color='#ff2d2d';
+    blCount++;
+    addLog('⛔ L'+ln+': TAG BLACKLISTED — '+tag+' — BARRIER LOCKED!','alert');
+    document.getElementById('moneyDisplay').style.display='none';
+    await sleep(1500);
+    await triggerAlarm(ln, tag, vehType, li);
+    addLog('🚔 L'+ln+': Vehicle towed by police','police');
+    showGTANotif('VEHICLE REMOVED','Towed from LANE-0'+ln);
+    laneCarTargetZ[li]=CAR_END_Z;
+    await sleep(2500);
+    scene.remove(car3D); laneCars[li]=null;
+    lc.classList.remove('bl-active');
+    lcDot.classList.remove('danger');
+    rfidHud.className='lc-rfid';
+    rfidHud.textContent='RFID: STANDBY';
+    statusEl.textContent='READY';
+    statusEl.style.color='#00ff88';
+    addLog('✓ L'+ln+': Lane cleared. Ready for next.','success');
+    document.getElementById('policePopup').classList.remove('active');
+    updateAll();
+    await sleep(1200);
+    return;
+  }
+
+  // NORMAL PATH
+  statusEl.textContent='CHECKING BAL';
+  statusEl.style.color='#ffaa00';
+  rfidHud.className='lc-rfid reading';
+  addLog('💰 L'+ln+': Checking FASTag balance ₹'+balance,'');
+  await sleep(1000);
+
+  statusEl.textContent='DEDUCTING ₹'+TOLL;
+  statusEl.style.color='#ffd700';
+  addLog('💳 L'+ln+': Deducting ₹'+TOLL+' from ₹'+balance,'');
+  playBeep(880,0.07);
+  await sleep(1200);
+
+  balance-=TOLL; totalRevenue+=TOLL;
+  laneDeducted[li]+=TOLL;
+  balEl.textContent='₹'+balance;
+  dedEl.textContent='₹'+laneDeducted[li];
+  addLog('✓ L'+ln+': ₹'+TOLL+' deducted. Balance: ₹'+balance,'success');
+  showGTANotif('-₹'+TOLL+' TOLL DEDUCTED','LANE-0'+ln+' · Balance: ₹'+balance);
+  playBeep(440,0.05);
+  await sleep(800);
+
+  statusEl.textContent='BARRIER OPEN';
+  statusEl.style.color='#00ff88';
+  rfidHud.className='lc-rfid';
+  rfidHud.textContent='RFID: ✓ VALID';
+  barriers[li].isOpen=true;
+  addLog('🚧 L'+ln+': Barrier opening...','success');
+  showGTANotif('🚧 BARRIER OPEN','LANE-0'+ln+' — Vehicle may pass');
+  await sleep(1200);
+
+  laneCarTargetZ[li]=CAR_BARRIER_Z;
+  statusEl.textContent='PASSING';
+  addLog('🚗 L'+ln+': Vehicle passing barrier...','');
+  await sleep(1200);
+
+  laneCarTargetZ[li]=CAR_END_Z;
+  addLog('🚗 L'+ln+': Vehicle driving away...','');
+  await sleep(1500);
+
+  barriers[li].isOpen=false;
+  statusEl.textContent='CLOSING';
+  addLog('🚧 L'+ln+': Barrier closing...','');
+  await sleep(800);
+
+  scene.remove(car3D); laneCars[li]=null;
+  passed++; lanePassed[li]++;
+  document.getElementById('l'+ln+'-passed').textContent=lanePassed[li];
+  statusEl.textContent='✓ PASSED';
+  statusEl.style.color='#00ff88';
+  addLog('✓ L'+ln+': '+vehType+' ['+tag+'] PASSED. Total: '+passed+'/30','success');
+  showGTANotif('✓ VEHICLE PASSED','LANE-0'+ln+' · Total: '+passed);
+  updateAll();
+  await sleep(800);
+
+  statusEl.textContent='READY';
+  rfidHud.textContent='RFID: STANDBY';
+  await sleep(600);
+}
+
+// ── MAIN SIMULATION ──
+async function startSim(){
+  initAC();
+  document.getElementById('runBtn').disabled=true;
+  // Reset
+  passed=0; blCount=0; totalRevenue=0; balance=450; easyDone=false;
+  lanePassed=[0,0,0]; laneDeducted=[0,0,0];
+  document.getElementById('policePopup').classList.remove('active');
+  document.getElementById('alarmOverlay').classList.remove('active');
+  document.getElementById('sirenBar').classList.remove('active');
+  document.getElementById('wantedWrap').style.display='none';
+  document.getElementById('moneyDisplay').style.display='';
+  document.getElementById('phoneBal').textContent='₹450';
+  document.getElementById('em-cust').textContent='Waiting...';
+  document.getElementById('em-shop').textContent='Standby';
+  document.getElementById('em-status').textContent='—';
+  // Reset network flow
+  const tagRow=document.getElementById('tagEntryRow');
+  if(tagRow) tagRow.style.display='none';
+  const pmMsg=document.getElementById('pm-msg');
+  if(pmMsg) pmMsg.style.display='none';
+  for(let nn=0;nn<3;nn++){
+    const nd=document.getElementById('nn-'+nn);
+    if(nd) nd.querySelector('.nn-count').textContent='0';
+  }
+  const nnMain=document.getElementById('nn-main');
+  if(nnMain) nnMain.querySelector('.nn-count').textContent='0';
+  const netSync=document.getElementById('netSyncTime');
+  if(netSync) netSync.textContent='SYNC: STANDBY';
+  for(let i=0;i<3;i++){
+    document.getElementById('l'+(i+1)+'-bal').textContent='₹450';
+    document.getElementById('l'+(i+1)+'-deducted').textContent='₹0';
+    document.getElementById('l'+(i+1)+'-passed').textContent='0';
+    const st=document.getElementById('l'+(i+1)+'-status');
+    st.textContent='READY'; st.style.color='#00ff88';
+    document.getElementById('rfid-hud-'+i).textContent='RFID: STANDBY';
+    document.getElementById('rfid-hud-'+i).className='lc-rfid';
+    document.getElementById('lc-'+i).classList.remove('bl-active');
+    document.getElementById('lc-dot-'+i).classList.remove('danger');
+  }
+  const logPanel=document.getElementById('logPanel');
+  const titleNode=logPanel.querySelector('.log-title-gta');
+  logPanel.innerHTML=''; logPanel.appendChild(titleNode);
+  updateAll();
+
+  // Boot
+  addLog('▶ System booting up...','');
+  showGTANotif('SYSTEM INITIALIZING','Sangjani Toll Plaza · NHA');
+  await sleep(1500);
+  addLog('📡 RFID readers activating...','');
+  showGTANotif('RFID READERS ONLINE','3 readers initialized');
+  await sleep(1200);
+  addLog('📷 CCTV cameras active — recording 24/7','');
+  await sleep(800);
+  addLog('🚔 Police unit & barriers on standby','');
+  await sleep(800);
+  addLog('📋 Blacklist database loaded','');
+  addLog('🏗️ Server tower online · Kiosk ready','');
+  showGTANotif('ALL SYSTEMS READY','Server Tower + Easy Money Kiosk online');
+  await sleep(1500);
+
+  // ═══ PHASE 1: LANE-01 ═══
+  addLog('','');
+  addLog('╔═══════════════════════════════╗','');
+  addLog('║  PHASE 1: LANE-01 · 2 VEHICLES ║','');
+  addLog('╚═══════════════════════════════╝','');
+  showGTANotif('PHASE 1: LANE-01','2 vehicles incoming');
+  await sleep(1000);
+  await runCar(0, false, rndTag());
+  await runCar(0, false, rndTag());
+  addLog('✓ LANE-01 COMPLETE: '+lanePassed[0]+' passed, ₹'+laneDeducted[0]+' revenue','success');
+  await sleep(600);
+
+  // SYNC LANE-01 → MAIN SERVER
+  addLog('📡 Carrying LANE-01 data → Main Server...','');
+  showGTANotif('📡 SYNCING LANE-01','Data → Server Tower (5 seconds)');
+  await sleep(500);
+  await doSync(0);
+
+  // ═══ PHASE 2: LANE-02 ═══
+  addLog('','');
+  addLog('╔═══════════════════════════════╗','');
+  addLog('║  PHASE 2: LANE-02 · 2 VEHICLES ║','');
+  addLog('╚═══════════════════════════════╝','');
+  showGTANotif('PHASE 2: LANE-02','2 vehicles incoming');
+  await sleep(1000);
+  await runCar(1, false, rndTag());
+  await runCar(1, false, rndTag());
+  addLog('✓ LANE-02 COMPLETE: '+lanePassed[1]+' passed, ₹'+laneDeducted[1]+' revenue','success');
+  await sleep(600);
+
+  // SYNC LANE-02 → MAIN SERVER
+  addLog('📡 Carrying LANE-02 data → Main Server...','');
+  showGTANotif('📡 SYNCING LANE-02','Data → Server Tower (5 seconds)');
+  await sleep(500);
+  await doSync(1);
+
+  // ═══ PHASE 3: LANE-03 (includes blacklisted!) ═══
+  addLog('','');
+  addLog('╔═══════════════════════════════╗','');
+  addLog('║  PHASE 3: LANE-03 · BLACKLIST  ║','');
+  addLog('╚═══════════════════════════════╝','');
+  showGTANotif('PHASE 3: LANE-03','Normal + Blacklisted vehicle');
+  await sleep(1000);
+  await runCar(2, false, rndTag());
+  await runCar(2, true, 'XYZ-9999');
+  addLog('✓ LANE-03 COMPLETE: '+lanePassed[2]+' passed, '+blCount+' blacklisted','success');
+  await sleep(600);
+
+  // SYNC LANE-03 → MAIN SERVER
+  addLog('📡 Carrying LANE-03 data → Main Server...','');
+  showGTANotif('📡 SYNCING LANE-03','Data → Server Tower (5 seconds)');
+  await sleep(500);
+  await doSync(2);
+
+  // ═══ PHASE 4: ADMIN SERVER DASHBOARD ═══
+  addLog('','');
+  addLog('╔═══════════════════════════════╗','');
+  addLog('║  PHASE 4: ADMIN SERVER VERIFY  ║','');
+  addLog('╚═══════════════════════════════╝','');
+  showGTANotif('PHASE 4: ADMIN SERVER','Dashboard verification — all lanes');
+  await sleep(800);
+  await showAdminServerSync();
+
+  // ═══ PHASE 5: EASY MONEY TOP-UP ═══
+  addLog('','');
+  addLog('╔═══════════════════════════════╗','');
+  addLog('║  PHASE 5: EASY MONEY TOP-UP   ║','');
+  addLog('╚═══════════════════════════════╝','');
+  showGTANotif('PHASE 5: EASY MONEY','Customer mobile top-up via kiosk');
+  await sleep(1000);
+  await doEasyMoney(rndTag());
+
+  // ═══ COMPLETE ═══
+  await sleep(2000);
+  addLog('','');
+  addLog('══════════════════════════════════════','');
+  addLog('■ SIMULATION COMPLETE','success');
+  addLog('  Vehicles: '+passed+' passed | '+blCount+' blacklisted','success');
+  addLog('  Revenue: ₹'+totalRevenue,'success');
+  addLog('  Server: All 3 lanes synced to Main Server','success');
+  addLog('  Easy Money: ₹200 top-up · Balance: ₹'+balance,'success');
+  addLog('══════════════════════════════════════','');
+  showGTANotif('■ SIMULATION COMPLETE','Vehicles: '+passed+' · Revenue: ₹'+totalRevenue+' · FYP 2023');
+  updateAll();
+  document.getElementById('runBtn').disabled=false;
+  document.getElementById('runBtn').textContent='▶ RESTART';
+}
+
+document.getElementById('runBtn').addEventListener('click', startSim);
+
+})();
+</script>
+</body>
+</html>
